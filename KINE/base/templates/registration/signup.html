@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Signup</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 15px;
+        }
+
+        .form-box {
+            width: 100%;
+            max-width: 400px;
+            background: #fff;
+            padding: 25px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        .form-box h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #222;
+            font-size: clamp(20px, 5vw, 26px);
+        }
+
+        .form-box input {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: clamp(14px, 4vw, 16px);
+            color: #000;
+            background: #fff;
+        }
+
+        .form-box input::placeholder {
+            font-size: clamp(12px, 3.5vw, 14px);
+            color: #888;
+        }
+
+        .error {
+            color: red;
+            font-size: clamp(12px, 3.5vw, 14px);
+            margin-top: 4px;
+        }
+
+        .btn {
+            margin-top: 15px;
+            width: 100%;
+            padding: 12px;
+            background: #000;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: clamp(14px, 4vw, 16px);
+        }
+
+        .btn:hover { background: #444; }
+        .btn:disabled { background: grey; cursor: not-allowed; }
+
+        .password-container {
+            position: relative;
+        }
+
+        .password-container input {
+            padding-right: 40px;
+        }
+
+        .toggle-eye {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #666;
+            font-size: clamp(14px, 4vw, 18px);
+        }
+
+        .toggle-eye:hover { color: #000; }
+
+        /* Extra fine-tuning for small screens */
+        @media (max-width: 500px) {
+            body { padding: 10px; }
+            .form-box { padding: 20px; }
+            .btn { padding: 10px; }
+        }
+        .signup {
+    margin-top: 10px;
+    text-align: center;
+}
+.signup a {
+    color: #007bff;
+    text-decoration: none;
+    font-size: 18px;
+}
+.signup a:hover {
+    text-decoration: underline;
+}
+    </style>
+</head>
+<body>
+<div class="form-box">
+    <h2>Signup</h2>
+
+    {% if not otp_section %}
+    <!-- STEP 1: Register -->
+    <form method="post">
+        {% csrf_token %}
+
+        <input type="text" name="full_name" placeholder="Full Name" required>
+        {% if errors.full_name %}<div class="error">{{ errors.full_name }}</div>{% endif %}
+
+        <input type="text" name="contact" placeholder="Email or Mobile Number" required>
+        {% if errors.contact %}<div class="error">{{ errors.contact }}</div>{% endif %}
+
+        <div class="password-container">
+            <input type="password" name="password" id="password" placeholder="Password must be 8+ chars with atleast 1 upper,1lowercase,number&special character" required>
+            <i class="fa-regular fa-eye toggle-eye" id="eye-password" onclick="togglePassword('password','eye-password')"></i>
+        </div>
+        {% if errors.password %}<div class="error">{{ errors.password }}</div>{% endif %}
+
+        <div class="password-container">
+            <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm Password" required>
+            <i class="fa-regular fa-eye toggle-eye" id="eye-confirm" onclick="togglePassword('confirm_password','eye-confirm')"></i>
+        </div>
+        {% if errors.confirm_password %}<div class="error">{{ errors.confirm_password }}</div>{% endif %}
+
+        <button type="submit" name="register" class="btn">Register</button>
+    </form>
+<!--    <div class="signup">-->
+<!--        <span>Existing User</span>-->
+<!--    <a href="{% url 'base:login' %}">Click</a>-->
+<!--    </div>-->
+        {% endif %}
+
+    {% if otp_section %}
+    <!-- STEP 2: OTP Verification -->
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="contact" value="{{ contact }}">
+        <input type="text" name="otp" placeholder="Enter OTP" required>
+        {% if errors.otp %}<div class="error">{{ errors.otp }}</div>{% endif %}
+
+        <p style="font-size: clamp(13px, 3.5vw, 15px); margin-top:10px;">
+            OTP expires in <span id="timer">300</span> seconds
+        </p>
+
+        <button type="submit" name="verify" class="btn">Confirm OTP</button>
+        <button type="submit" name="resend" class="btn" id="resend-btn" {% if resend_disabled %}disabled{% endif %}>Resend OTP</button>
+    </form>
+
+    <script>
+    let timeLeft = 300;
+    let timerEl = document.getElementById('timer');
+    let resendBtn = document.getElementById('resend-btn');
+
+    let countdown = setInterval(() => {
+        timeLeft--;
+        timerEl.textContent = timeLeft;
+        if(timeLeft <= 0){
+            clearInterval(countdown);
+            alert('OTP expired! Please resend.');
+            resendBtn.disabled = false;
+        }
+    }, 1000);
+    </script>
+    {% endif %}
+</div>
+
+<script>
+function togglePassword(fieldId, eyeId) {
+    const field = document.getElementById(fieldId);
+    const eyeIcon = document.getElementById(eyeId);
+
+    if (field.type === "password") {
+        field.type = "text";
+        eyeIcon.classList.remove("fa-eye");
+        eyeIcon.classList.add("fa-eye-slash");
+    } else {
+        field.type = "password";
+        eyeIcon.classList.remove("fa-eye-slash");
+        eyeIcon.classList.add("fa-eye");
+    }
+}
+</script>
+</body>
+</html>
