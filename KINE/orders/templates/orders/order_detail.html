@@ -3,17 +3,14 @@
 {% block content %}
 
 <style>
-.order-detail-container {
-    max-width: 480px;
-    margin: 70px auto;
-    padding: 10px;
-    background: #f6f6f6;
-    font-family: Arial, sans-serif;
-}
+.order-detail-container { max-width: 480px; margin: 70px auto; padding: 10px; background: #f6f6f6; font-family: Arial, sans-serif; }
 .page-header { background: #fff; padding: 14px; font-size: 16px; font-weight: 600; border-bottom: 1px solid #ddd; }
 .product-card { background: #fff; border-radius: 8px; padding: 12px; margin-top: 12px; border: 1px solid #eee; }
 .product-top { display: flex; gap: 12px; }
 .product-top img { width: 80px; height: 100px; object-fit: cover; border-radius: 6px; }
+.other-item { width: 100px; text-align: center; cursor: pointer; flex-shrink: 0; }
+.other-item img { width: 80px; height: 100px; object-fit: cover; border-radius: 6px; }
+.other-item p { font-size: 12px; margin-top: 4px; }
 .product-info { flex: 1; }
 .product-info h4 { font-size: 14px; margin: 0 0 5px; }
 .product-info p { font-size: 13px; margin: 2px 0; color: #555; }
@@ -32,191 +29,176 @@
 .action-bar a.active { color: #000; font-weight: 600; }
 .action-bar a.disabled { pointer-events: none; opacity: 0.4; }
 .back-btn { display: inline-block; margin: 10px; font-size: 14px; text-decoration: none; color: #000; }
-.order-totals { margin-top:20px; padding:10px; background:#fff; border-radius:8px; border:1px solid #eee; }
-.order-totals p { margin:5px 0; font-size:14px; }
-.order-totals strong { font-size:16px; }
-#returnModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; }
-#returnModal div { background:#fff; padding:20px; border-radius:8px; max-width:400px; margin:100px auto; position:relative; }
-#returnModal textarea { width:100%; padding:5px; }
-#returnModal button { padding:5px 10px; margin-top:10px; }
+.payment-box { background: #fff; margin: 12px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; }
+.payment-header { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 10px; }
+.payment-row { display: flex; justify-content: space-between; margin: 4px 0; }
+.payment-footer { display: flex; justify-content: space-between; margin-top: 10px; font-size: 13px; }
+.invoice-disabled { color: #aaa; font-size: 12px; }
+#returnModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+#returnModal .modal-box { background: #fff; padding: 20px; border-radius: 8px; max-width: 400px; margin: 120px auto; }
+#returnModal textarea { width: 100%; padding: 6px; }
+#returnModal button { padding: 6px 12px; margin-top: 10px; }
 </style>
 
 <div class="order-detail-container">
-
     <a href="{% url 'order_history' %}" class="back-btn">← Back</a>
-
     <div class="page-header">
         Order Details<br>
         <small>Order ID: <strong>{{ order.order_code }}</strong></small>
     </div>
 
-    {% for item in order.items.all %}
-    <div class="product-card" data-item-id="{{ item.id }}">
-
-        <div class="product-top">
-            {% if item.product and item.product.image %}
-                <img src="{{ item.product.image.url }}" alt="{{ item.product_name }}">
-            {% else %}
-                <img src="https://via.placeholder.com/80x100" alt="Product">
-            {% endif %}
-
-            <div class="product-info">
-                <h4>{{ item.product_name }}</h4>
-                <div class="price">₹{{ item.price|floatformat:2 }}</div>
-                {% if item.size %}
-                    <p>Size: {{ item.size }}</p>
-                {% endif %}
-                <div class="status {{ item.status }}">{{ item.status|capfirst }}</div>
-            </div>
-        </div>
-
-        <div class="action-bar">
-
-            <!-- TRACK -->
-            {% if item.status in 'shipped out_for_delivery delivered' %}
-                <a href="{% url 'track_order_item' item.id %}" class="active">Track</a>
-            {% else %}
-                <a class="disabled">Track</a>
-            {% endif %}
-
-            <!-- CANCEL -->
-            {% if item.status in 'confirmed processing' %}
-                <a href="{% url 'cancel_order_item' item.id %}" class="active cancel-btn">Cancel</a>
-            {% else %}
-                <a class="disabled">Cancel</a>
-            {% endif %}
-
-            <!-- RETURN -->
-            {% if item.status == 'delivered' %}
-                <a href="{% url 'item_issue' item.id %}" class="active return-btn">Return</a>
-            {% elif item.status == 'returned' %}
-                <a class="disabled">Returned</a>
-            {% else %}
-                <a class="disabled">Return</a>
-            {% endif %}
-
-        </div>
-
-    </div>
-    {% endfor %}
-
-    <!-- Order Totals -->
-    <div class="order-totals">
-        <p>Subtotal: ₹<span id="total-amount">{{ order.total_amount|floatformat:2 }}</span></p>
-        <p>Tax: ₹<span id="tax-amount">{{ order.tax_amount|floatformat:2 }}</span></p>
-        <p>Delivery Charges: ₹<span id="delivery-charges">{{ order.delivery_charges|floatformat:2 }}</span></p>
-        <p><strong>Grand Total: ₹<span id="grand-total">{{ order.grand_total|floatformat:2 }}</span></strong></p>
-    </div>
-
+    {% with order.items.all as items %}
+    {% if items %}
+    <!-- ACTIVE ITEM -->
+<div id="activeItem" class="product-card" data-item-id="{{ items.0.id }}">
+    {% include "orders/partials/active_item.html" with item=items.0 %}
 </div>
 
-<!-- Return Reason Modal -->
+<!-- OTHER PRODUCTS -->
+<div id="otherProducts" style="display:flex;gap:10px;overflow-x:auto;margin-top:10px;">
+    {% for item in items|slice:"1:" %}
+        {% include "orders/partials/other_item.html" with item=item %}
+    {% endfor %}
+</div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="payment-box">
+        <div class="payment-header">
+            <span>Order payment details</span>
+            {% if all_delivered %}
+                <a href="#">Download invoice</a>
+            {% else %}
+                <span class="invoice-disabled">Invoice after delivery</span>
+            {% endif %}
+        </div>
+        <div class="payment-row"><span>Order amount</span><span id="total-amount">₹{{ order.total_amount|floatformat:2 }}</span></div>
+        <div class="payment-row"><span>Tax</span><span id="tax-amount">₹{{ order.tax_amount|floatformat:2 }}</span></div>
+        <div class="payment-row"><span>Delivery charges</span><span id="delivery-charges">₹{{ order.delivery_charges|floatformat:2 }}</span></div>
+        <div class="payment-row" style="font-weight:600;"><span>Order total</span><span id="grand-total">₹{{ order.grand_total|floatformat:2 }}</span></div>
+        <div class="payment-row"><span>Payment mode</span><span>{{ order.payment_method|capfirst }}</span></div>
+        <div class="payment-footer"><span>order id: {{ order.order_code }}</span><span>placed on: {{ order.created_at|date:"d M Y" }}</span></div>
+    </div>
+</div>
+
+<!-- RETURN MODAL -->
 <div id="returnModal">
-    <div>
+    <div class="modal-box">
         <h4>Return Item</h4>
-        <p>Enter reason for return:</p>
+        <p>Reason for return</p>
         <textarea id="returnReason" rows="4"></textarea>
         <div style="text-align:right;">
-            <button id="cancelReturn">Cancel</button>
+            <button id="closeReturn">Cancel</button>
             <button id="submitReturn">Submit</button>
         </div>
     </div>
 </div>
 
-<!-- jQuery AJAX -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-$(document).ready(function(){
-
-    var currentReturnBtn = null;
-
-    // CANCEL AJAX
-    $('.cancel-btn').click(function(e){
-        e.preventDefault();
-        var $btn = $(this);
-        var url = $btn.attr('href');
-
-        $.ajax({
-            url: url,
-            type: 'GET',
-            success: function(response){
-                if(response.success){
-                    // Update UI
-                    $btn.closest('.product-card').find('.status')
-                        .text('Cancelled')
-                        .removeClass()
-                        .addClass('status cancelled');
-
-                    $btn.closest('.action-bar').find('a').each(function(){
-                        $(this).addClass('disabled').css('pointer-events','none').css('opacity','0.4');
-                    });
-
-                    // Update order totals dynamically
-                    if(response.totals){
-                        $('#total-amount').text(parseFloat(response.totals.total_amount).toFixed(2));
-                        $('#tax-amount').text(parseFloat(response.totals.tax_amount).toFixed(2));
-                        $('#delivery-charges').text(parseFloat(response.totals.delivery_charges).toFixed(2));
-                        $('#grand-total').text(parseFloat(response.totals.grand_total).toFixed(2));
-                    }
-                    alert(response.message || "Item cancelled successfully!");
-                } else {
-                    alert(response.message || "Failed to cancel item!");
-                }
-            },
-            error: function(){
-                alert("Something went wrong. Try again!");
-            }
+const csrftoken = (name='csrftoken') => {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        document.cookie.split(';').forEach(c => {
+            c = c.trim();
+            if (c.startsWith(name + '=')) cookieValue = decodeURIComponent(c.substring(name.length + 1));
         });
+    }
+    return cookieValue;
+};
+
+/* UPDATE TOTALS */
+function updateOrderTotals(totals){
+    if(!totals) return;
+    $('#total-amount').text(`₹${Number(totals.total_amount).toFixed(2)}`);
+    $('#tax-amount').text(`₹${Number(totals.tax_amount).toFixed(2)}`);
+    $('#delivery-charges').text(`₹${Number(totals.delivery_charges).toFixed(2)}`);
+    $('#grand-total').text(`₹${Number(totals.grand_total).toFixed(2)}`);
+    if(Number(totals.grand_total)===0) $('.payment-box').fadeOut();
+}
+
+/* CANCEL ITEM */
+$(document).on('click','.cancel-btn:not(.disabled)',function(){
+    if(!confirm("Cancel this item?")) return;
+    const btn = $(this);
+    $.ajax({
+        url: btn.data('url'),
+        type:'POST',
+        headers:{'X-CSRFToken': csrftoken()},
+        success:function(res){
+            if(!res.success){ alert(res.message); return; }
+            const card = btn.closest('.product-card');
+            card.find('.status').text('Cancelled').attr('class','status cancelled');
+            card.find('.action-bar a').removeClass('active').addClass('disabled');
+            updateOrderTotals(res.totals);
+            alert(res.message);
+        }, error:function(){ alert("Cancel failed"); }
     });
-
-    // RETURN BUTTON MODAL
-    $('.return-btn').click(function(e){
-        e.preventDefault();
-        currentReturnBtn = $(this);
-        $('#returnReason').val('');
-        $('#returnModal').fadeIn();
-    });
-
-    $('#cancelReturn').click(function(){
-        $('#returnModal').fadeOut();
-    });
-
-    $('#submitReturn').click(function(){
-        var reason = $('#returnReason').val();
-        if(!reason.trim()){
-            alert("Please enter a reason for return.");
-            return;
-        }
-        var url = currentReturnBtn.attr('href');
-
-        $.ajax({
-            url: url,
-            type: 'POST',
-            data: { reason: reason, csrfmiddlewaretoken: '{{ csrf_token }}' },
-            success: function(response){
-                if(response.success){
-                    currentReturnBtn.closest('.product-card').find('.status')
-                        .text('Returned')
-                        .removeClass()
-                        .addClass('status returned');
-
-                    currentReturnBtn.closest('.action-bar').find('a').each(function(){
-                        $(this).addClass('disabled').css('pointer-events','none').css('opacity','0.4');
-                    });
-
-                    $('#returnModal').fadeOut();
-                    alert(response.message || "Return request submitted!");
-                } else {
-                    alert(response.message || "Failed to submit return request!");
-                }
-            },
-            error: function(){
-                alert("Something went wrong. Try again!");
-            }
-        });
-    });
-
 });
+
+/* RETURN ITEM */
+let returnUrl=null, returnItemId=null;
+$(document).on('click','.return-btn:not(.disabled)',function(e){
+    e.preventDefault();
+    returnUrl = $(this).data('url');
+    returnItemId = $(this).closest('.product-card').data('item-id');
+    $('#returnReason').val('');
+    $('#returnModal').fadeIn();
+});
+$('#closeReturn').on('click',()=>$('#returnModal').fadeOut());
+$('#submitReturn').on('click',function(){
+    const reason = $('#returnReason').val().trim();
+    if(!reason){ alert("Please enter reason"); return; }
+    $.ajax({
+        url: returnUrl,
+        type:'POST',
+        headers:{'X-CSRFToken': csrftoken()},
+        data:{reason:reason},
+        success:function(res){
+            if(!res.success){ alert(res.message); return; }
+            const card = $(`.product-card[data-item-id="${returnItemId}"]`);
+            card.find('.status').text('Returned').attr('class','status returned');
+            card.find('.action-bar a').removeClass('active').addClass('disabled');
+            updateOrderTotals(res.totals);
+            $('#returnModal').fadeOut();
+            alert(res.message);
+        },
+        error:function(xhr){ console.error(xhr.responseText); alert("Return failed"); }
+    });
+});
+
+/* SWAP ACTIVE / OTHER ITEM */
+$(document).on('click','.other-item',function(){
+    const clickedCard = $(this);
+    const clickedId = clickedCard.data('item-id');
+    const activeCard = $('#activeItem');
+    const activeId = activeCard.data('item-id');
+
+    if(!clickedId) return;
+
+    $.ajax({
+        url:`/orders/active-item/${clickedId}/`,
+        type:'GET',
+        success:function(html){
+            // Save current active item's data to render as small other-item
+            const activeItemData = {
+                id: activeCard.data('item-id'),
+                image: activeCard.find('img').attr('src'),
+                name: activeCard.find('h4').text()
+            };
+            // Update active item with clicked HTML
+            activeCard.html(html).attr('data-item-id', clickedId);
+
+            // Replace clicked card with small version of previous active item
+            clickedCard.html(`
+                <img src="${activeItemData.image}" alt="${activeItemData.name}">
+                <p>${activeItemData.name}</p>
+            `).attr('data-item-id', activeId);
+        },
+        error:function(xhr){ console.error("Swap failed:",xhr.responseText); }
+    });
+});
+
 </script>
 
 {% endblock %}

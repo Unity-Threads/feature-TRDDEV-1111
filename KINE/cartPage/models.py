@@ -7,6 +7,8 @@ class TaxesAndCharges(models.Model):
     min_amount_for_free_delivery = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     def __str__(self):
         return f"TaxesAndCharges (Tax: {self.tax}%, Delivery: {self.delivery_charges}, Min Free Delivery: {self.min_amount_for_free_delivery})"
+
+
 from app.models import Product,Size
 
 class CartItem(models.Model):

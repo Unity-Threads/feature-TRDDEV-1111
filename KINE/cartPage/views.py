@@ -12,6 +12,7 @@ from django.conf import settings
 from django.contrib.auth import authenticate, login as auth_login
 from django.views.decorators.csrf import csrf_exempt
 from tomlkit import item
+
 from app.models import Product, ProductStock
 # -------------------------------
 # Python Imports
@@ -248,11 +249,11 @@ def _cart_summary_response(user, updated_item=None, removed=False):
     if updated_item:
         item_subtotal = Decimal(updated_item.price) * updated_item.quantity
         response.update({
-            "quantity": updated_item.quantity,
-            # both formatted and raw subtotal
-            "subtotal": f"₹{item_subtotal:.2f}",
-            "subtotal_raw": float(item_subtotal),
-            "item_id": updated_item.id,
+                "quantity": updated_item.quantity,
+                # both formatted and raw subtotal
+                "subtotal": f"₹{item_subtotal:.2f}",
+                "subtotal_raw": float(item_subtotal),
+                "item_id": updated_item.id,
         })
 
     return JsonResponse(response)

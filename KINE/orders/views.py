@@ -268,12 +268,6 @@ def razorpay_payment_success(request):
     return redirect('cartPage')
 
 
-from django.shortcuts import render
-from orders.models import Order
-# orders/views.py
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-from .models import Order
 
 
 @login_required
@@ -288,114 +282,6 @@ def order_history(request):
     return render(request, 'orders/order_history.html', {
         'orders': orders
     })
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
-from .models import OrderItem, ReturnRequest
-
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
-from orders.models import OrderItem, ReturnRequest
-from app.models import Product, ProductStock  # Assuming you have Stock model for sizes
-
-@login_required
-def item_issue(request, item_id):
-    if request.method != "POST":
-        return JsonResponse({"success": False, "message": "Invalid request method."})
-
-    reason = request.POST.get("reason", "").strip()
-    if not reason:
-        return JsonResponse({"success": False, "message": "Please provide a reason."})
-
-    order_item = get_object_or_404(OrderItem, id=item_id, order__user=request.user)
-
-    if order_item.status != "delivered":
-        return JsonResponse({"success": False, "message": "Only delivered items can be returned."})
-
-    # Create ReturnRequest
-    ReturnRequest.objects.create(
-        item=order_item,
-        reason=reason,
-        status="requested"
-    )
-
-    # Update order item status
-    order_item.status = "returned"
-    order_item.save()
-
-    # Increase stock
-    if order_item.size:
-        stock_obj = order_item.product.stocks.filter(size=order_item.size).first()
-        if stock_obj:
-            stock_obj.stock += order_item.quantity
-            stock_obj.save()
-    else:
-        order_item.product.stock += order_item.quantity
-        order_item.product.save()
-
-    return JsonResponse({"success": True, "message": "Return request submitted and stock updated!"})
-
-
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404
-from app.models import Product, Size
-from .models import OrderItem, Order
-
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404
-from app.models import Product, Size
-from .models import OrderItem, Order
-
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
-
-@login_required
-def cancel_order_item(request, item_id):
-    # AJAX expects GET
-    if request.method != "GET":
-        return JsonResponse({"success": False, "message": "Invalid request method."})
-
-    order_item = get_object_or_404(OrderItem, id=item_id, order__user=request.user)
-
-    if order_item.status not in ['confirmed', 'processing']:
-        return JsonResponse({"success": False, "message": "Cannot cancel this item now."})
-
-    order_item.status = 'cancelled'
-    order_item.save()
-
-    # Update stock if using size
-    if order_item.size:
-        stock_obj = order_item.product.stocks.filter(size=order_item.size).first()
-        if stock_obj:
-            stock_obj.stock += order_item.quantity
-            stock_obj.save()
-    else:
-        order_item.product.stock += order_item.quantity
-        order_item.product.save()
-
-    # Update order totals
-    order = order_item.order
-    order.total_amount -= order_item.price * order_item.quantity
-    order.grand_total = order.total_amount + order.tax_amount + order.delivery_charges
-    order.save()
-
-    return JsonResponse({
-        "success": True,
-        "message": "Item cancelled successfully!",
-        "totals": {
-            "total_amount": float(order.total_amount),
-            "tax_amount": float(order.tax_amount),
-            "delivery_charges": float(order.delivery_charges),
-            "grand_total": float(order.grand_total),
-        }
-    })
-
-from django.shortcuts import get_object_or_404, render
-from django.contrib.auth.decorators import login_required
 
 @login_required
 def order_summary(request, order_id):
@@ -409,22 +295,9 @@ def order_summary(request, order_id):
         'confirmed_items': confirmed_items,
         'cancelled_items': cancelled_items,
     })
-@login_required
 
-def order_item_detail(request, item_id):
-    item = get_object_or_404(
-        OrderItem,
-        id=item_id,
-        order__user=request.user
-    )
-    return render(request, "orders/order_item_detail.html", {
-        "item": item
-    })
 
 # orders/views.py
-from django.shortcuts import get_object_or_404
-from django.contrib.auth.decorators import login_required
-from .models import Order
 
 @login_required
 def order_detail(request, order_code):
@@ -433,78 +306,146 @@ def order_detail(request, order_code):
         order_code=order_code,
         user=request.user
     )
+
+    items = order.items.all()
+    # Check if all items are delivered
+    all_delivered = all(item.status == 'delivered' for item in items)
+
     return render(request, 'orders/order_detail.html', {
-        'order': order
+        'order': order,
+        'all_delivered': all_delivered,
+        'items': items,
     })
+
+@login_required
+def load_active_item(request, item_id):
+    item = get_object_or_404(OrderItem, id=item_id, order__user=request.user)
+    return render(request, "orders/partials/active_item.html", {"item": item})
+
+
 
 
 # orders/views.py
 from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404
 from django.db import transaction
-from .models import OrderItem, Order
 
 @login_required
 def cancel_order_item(request, item_id):
-    """
-    Cancel an order item via AJAX:
-    - Update status
-    - Restore stock
-    - Update order totals
-    """
-    order_item = get_object_or_404(OrderItem, id=item_id, order__user=request.user)
-    order = order_item.order
+    if request.method != "POST":
+        return JsonResponse({
+            "success": False,
+            "message": "Invalid request method."
+        })
 
-    if order_item.status not in ['confirmed', 'processing']:
-        return JsonResponse({'success': False, 'message': 'Cannot cancel this item!'})
+    order_item = get_object_or_404(
+        OrderItem,
+        id=item_id,
+        order__user=request.user
+    )
 
-    try:
-        with transaction.atomic():
-            # 1️⃣ Cancel item
-            order_item.status = 'cancelled'
-            order_item.save()
+    if order_item.status not in ["confirmed", "processing"]:
+        return JsonResponse({
+            "success": False,
+            "message": "This item cannot be cancelled."
+        })
 
-            # 2️⃣ Restore stock
-            if order_item.product:
-                if order_item.size:
-                    stock_obj = order_item.product.stocks.filter(size=order_item.size).first()
-                    if stock_obj:
-                        stock_obj.stock += order_item.quantity
-                        stock_obj.save()
-                else:
-                    order_item.product.stock += order_item.quantity
-                    order_item.product.save()
+    with transaction.atomic():
 
-            # 3️⃣ Update order totals
-            cancelled_amount = order_item.price * order_item.quantity
-            order.total_amount -= cancelled_amount
-            order.grand_total = order.total_amount + order.tax_amount + order.delivery_charges
-            order.save()
+        # 1️⃣ Mark item cancelled
+        order_item.status = "cancelled"
+        order_item.save(update_fields=["status"])
 
-            # 4️⃣ Return JSON with updated totals
-            return JsonResponse({
-                'success': True,
-                'message': 'Item cancelled successfully!',
-                'totals': {
-                    'total_amount': str(order.total_amount),
-                    'tax_amount': str(order.tax_amount),
-                    'delivery_charges': str(order.delivery_charges),
-                    'grand_total': str(order.grand_total)
-                }
-            })
+        # 2️⃣ Restore stock
+        if order_item.product:
+            if order_item.size:
+                stock = order_item.product.stocks.filter(
+                    size=order_item.size
+                ).first()
+                if stock:
+                    stock.stock += order_item.quantity
+                    stock.save(update_fields=["stock"])
+            else:
+                order_item.product.stock += order_item.quantity
+                order_item.product.save(update_fields=["stock"])
 
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
+        # 3️⃣ Recalculate order totals (MODEL METHOD)
+        totals = order_item.order.recalculate_totals()
 
+    return JsonResponse({
+        "success": True,
+        "message": "Item cancelled successfully.",
+        "item_id": order_item.id,
+        "totals": totals
+    })
+##### RETURN FUNCTIONALITIES  #######33
+@login_required
+def item_issue(request, item_id):
+    if request.method != "POST":
+        return JsonResponse({
+            "success": False,
+            "message": "Invalid request method."
+        })
 
-#### EMAIL SERVICE #####
+    order_item = get_object_or_404(
+        OrderItem,
+        id=item_id,
+        order__user=request.user
+    )
+
+    if order_item.status != "delivered":
+        return JsonResponse({
+            "success": False,
+            "message": "This item cannot be returned."
+        })
+
+    reason = request.POST.get("reason", "").strip()
+    if not reason:
+        return JsonResponse({
+            "success": False,
+            "message": "Please provide a return reason."
+        })
+
+    with transaction.atomic():
+
+        # 1️⃣ Mark as returned
+        order_item.status = "returned"
+        order_item.return_reason = reason
+        order_item.refunded_quantity = order_item.quantity
+        order_item.save(update_fields=[
+            "status",
+            "return_reason",
+            "refunded_quantity"
+        ])
+
+        # 2️⃣ Restore stock
+        if order_item.product:
+            if order_item.size:
+                stock = order_item.product.stocks.filter(
+                    size=order_item.size
+                ).first()
+                if stock:
+                    stock.stock += order_item.quantity
+                    stock.save(update_fields=["stock"])
+            else:
+                order_item.product.stock += order_item.quantity
+                order_item.product.save(update_fields=["stock"])
+
+        # 3️⃣ Recalculate order totals
+        totals = order_item.order.recalculate_totals()
+
+    return JsonResponse({
+        "success": True,
+        "message": "Item returned successfully.",
+        "item_id": order_item.id,
+        "totals": totals
+    })#### EMAIL SERVICE #####
 
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 
 def send_order_confirmation_email(order):
+
     subject = f"Order Confirmation - {order.order_code}"
     html_message = render_to_string('orders/order_confirmation_email.html', {'order': order})
     plain_message = strip_tags(html_message)
@@ -520,84 +461,6 @@ def send_order_confirmation_email(order):
     )
 
 
-
-##### FILTER AND RATING SECTION  #####
-
-
-from django.db.models import Q
-from django.utils import timezone
-from datetime import timedelta
-from .models import Order
-
-def orders_list(request):
-    search = request.GET.get("search", "")
-    filter_status = request.GET.get("status", "")
-    date_filter = request.GET.get("date", "")
-
-    orders = Order.objects.filter(user=request.user)
-
-    # Search
-    if search:
-        orders = orders.filter(
-            Q(order_code__icontains=search) |
-            Q(items__product__name__icontains=search)
-        ).distinct()
-
-    # Filter by Status
-    if filter_status:
-        orders = orders.filter(status=filter_status)
-
-    # Filter by date range
-    if date_filter == "last_30":
-        orders = orders.filter(created_at__gte=timezone.now() - timedelta(days=30))
-    elif date_filter == "last_6m":
-        orders = orders.filter(created_at__gte=timezone.now() - timedelta(days=180))
-    elif date_filter == "last_1y":
-        orders = orders.filter(created_at__gte=timezone.now() - timedelta(days=365))
-
-    context = {"orders": orders}
-    return render(request, "orders/orders_list.html", context)
-
-
-
-
-
-
-############## cancel order item   ###########3
-
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, redirect
-from django.contrib import messages
-
-from .models import OrderItem
-
-
-@login_required
-def cancel_order_item(request, item_id):
-    item = get_object_or_404(
-        OrderItem,
-        id=item_id,
-        order__user=request.user
-    )
-
-    # Allowed statuses for cancellation
-    cancellable_statuses = ["confirmed", "processing"]
-
-    if item.status not in cancellable_statuses:
-        messages.error(request, "This item cannot be cancelled.")
-        return redirect("order_item_detail", item_id=item.id)
-
-    # Cancel item
-    item.status = "cancelled"
-    item.save()
-
-    messages.success(request, "Order item cancelled successfully.")
-
-    return redirect("order_item_detail", item_id=item.id)
-
-
-
-
 # orders/views.py
 from django.shortcuts import render, get_object_or_404
 from .models import OrderItem
@@ -607,3 +470,5 @@ def track_order_item(request, item_id):
     return render(request, 'orders/track_order_item.html', {
         'item': item
     })
+
+

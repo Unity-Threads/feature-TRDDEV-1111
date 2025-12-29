@@ -3,16 +3,14 @@ from django.conf import settings
 from address.models import Address
 from app.models import Product, Size
 import uuid
+from decimal import Decimal
 
 
 # =========================
 # ORDER
 # =========================
 class Order(models.Model):
-
-    # ---------- Order Identity ----------
     order_code = models.CharField(max_length=12, unique=True, editable=False)
-
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True)
 
@@ -49,13 +47,46 @@ class Order(models.Model):
         ('cancelled', 'Cancelled'),
         ('returned', 'Returned'),
     )
-
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
     # ---------- Timestamps ----------
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     paid_at = models.DateTimeField(null=True, blank=True)
+
+    # ---------- Methods ----------
+    def recalculate_totals(self):
+        """
+        Recalculate order totals based on active (non-cancelled, non-returned) items
+        """
+        active_items = self.items.exclude(status__in=['cancelled', 'returned'])
+        subtotal = sum(item.price * item.quantity for item in active_items)
+
+        tax = (subtotal * Decimal('0.05')).quantize(Decimal('0.01'))  # 5% tax
+        delivery = Decimal('50.00') if subtotal > 0 else Decimal('0.00')
+        grand_total = subtotal + tax + delivery
+
+        self.total_amount = subtotal
+        self.tax_amount = tax
+        self.delivery_charges = delivery
+        self.grand_total = grand_total
+
+        # If fully cancelled/returned, mark order cancelled
+        if grand_total == 0:
+            self.status = 'cancelled'
+
+        # Save updated values
+        self.save(update_fields=[
+            'total_amount', 'tax_amount', 'delivery_charges', 'grand_total', 'status', 'updated_at'
+        ])
+
+        # Return dict for use in AJAX responses
+        return {
+            "total_amount": float(self.total_amount),
+            "tax_amount": float(self.tax_amount),
+            "delivery_charges": float(self.delivery_charges),
+            "grand_total": float(self.grand_total),
+        }
 
     def save(self, *args, **kwargs):
         if not self.order_code:
@@ -78,7 +109,6 @@ class Order(models.Model):
 # ORDER ITEM
 # =========================
 class OrderItem(models.Model):
-
     STATUS_CHOICES = (
         ('confirmed', 'Confirmed'),
         ('processing', 'Processing'),
@@ -94,46 +124,24 @@ class OrderItem(models.Model):
         related_name="items",
         on_delete=models.CASCADE
     )
-
-    # ---------- Product Snapshot ----------
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
-    product_name = models.CharField(max_length=255,null=True)
+    product_name = models.CharField(max_length=255, null=True)
     product_sku = models.CharField(max_length=100, blank=True)
-
     size = models.ForeignKey(Size, null=True, blank=True, on_delete=models.SET_NULL)
-
     quantity = models.PositiveIntegerField(default=1)
     refunded_quantity = models.PositiveIntegerField(default=0)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='confirmed')
+    return_reason = models.TextField(null=True, blank=True)
 
-    price = models.DecimalField(max_digits=10, decimal_places=2)  # per item price snapshot
-
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default='confirmed'
-    )
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Recalculate order totals automatically whenever item changes
+        if self.order:
+            self.order.recalculate_totals()
 
     def __str__(self):
         return f"{self.product_name} x {self.quantity}"
-
-
-# =========================
-# RATING (Verified Purchase)
-# =========================
-class Rating(models.Model):
-
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    order_item = models.OneToOneField(OrderItem, on_delete=models.CASCADE,default=None)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-
-    stars = models.PositiveIntegerField()  # 1 to 5
-    review = models.TextField(blank=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.stars}⭐ - {self.product}"
-
 
 # =========================
 # RETURN REQUEST

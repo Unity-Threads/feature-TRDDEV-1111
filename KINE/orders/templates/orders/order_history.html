@@ -1,167 +1,225 @@
 {% extends "landing/base.html" %}
 {% load static %}
-
 {% block title %}My Orders{% endblock %}
 
 {% block content %}
-
 <style>
-.order-history-container {
-    max-width: 900px;
-    margin: 80px auto;
-    padding: 10px;
-    font-family: Arial, sans-serif;
+/* ================= CONTAINER ================= */
+.orders-container {
+    max-width: 420px;
+    margin: 70px auto;
+    padding: 12px;
+    font-family: system-ui, -apple-system;
 }
 
-.order-card {
-    background: #fff;
-    border-radius: 8px;
-    margin-bottom: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    overflow: hidden;
-}
-
-.order-header {
-    background: #f6f6f6;
-    padding: 12px 16px;
+/* ================= HEADER ================= */
+.orders-header {
     display: flex;
     justify-content: space-between;
-    font-size: 14px;
-}
-
-.order-body {
-    padding: 16px;
-}
-
-.order-item {
-    display: flex;
     align-items: center;
     margin-bottom: 12px;
 }
 
-.order-item img {
-    width: 70px;
-    height: 70px;
-    object-fit: cover;
-    border-radius: 6px;
-    margin-right: 12px;
-}
-
-.item-info {
-    flex: 1;
-}
-
-.item-info h4 {
-    font-size: 15px;
+.orders-header h2 {
+    font-size: 18px;
     margin: 0;
 }
 
-.item-info p {
+.filter-btn {
+    font-size: 14px;
+    color: #2874f0;
+    cursor: pointer;
+}
+
+/* ================= ORDER ID ================= */
+.order-id {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 14px 0 6px;
+}
+
+/* ================= CARD ================= */
+.order-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    border: 1px solid #eaeaea;
+    margin-bottom: 14px;
+    transition: box-shadow .2s ease;
+}
+
+.order-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* ================= IMAGE ================= */
+.order-img {
+    width: 72px;
+    height: 72px;
+    background: #f2f2f2;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-right: 12px;
+}
+
+.order-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* ================= INFO ================= */
+.order-info {
+    flex: 1;
+}
+
+.product-name {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.brand-name {
     font-size: 13px;
     color: #666;
-    margin: 4px 0;
+    margin-bottom: 4px;
 }
 
-.order-footer {
-    padding: 12px 16px;
-    border-top: 1px solid #eee;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.size-text {
+    font-size: 12px;
+    color: #444;
 }
 
-.status {
-    font-size: 13px;
-    font-weight: bold;
-    text-transform: capitalize;
+/* ================= MULTI ITEMS ================= */
+.more-items {
+    font-size: 12px;
+    color: #777;
+    margin-top: 4px;
 }
 
-.status.delivered { color: green; }
-.status.shipped { color: #ff9800; }
-.status.processing { color: #2196f3; }
-.status.cancelled { color: red; }
-
-.btn {
-    padding: 6px 12px;
-    font-size: 13px;
-    border-radius: 4px;
-    text-decoration: none;
+/* ================= ARROW ================= */
+.arrow {
+    font-size: 22px;
+    color: #666;
+    margin-left: 6px;
 }
 
-.btn-primary {
-    background: #2874f0;
-    color: white;
+/* ================= FILTER MODAL ================= */
+.filter-modal {
+    position: fixed;
+    left: 0;
+    bottom: -100%;
+    width: 100%;
+    background: #fff;
+    border-radius: 16px 16px 0 0;
+    padding: 16px;
+    box-shadow: 0 -4px 12px rgba(0,0,0,.15);
+    transition: 0.3s;
+    z-index: 999;
 }
 
-.btn-outline {
-    border: 1px solid #2874f0;
-    color: #2874f0;
+.filter-modal.active {
+    bottom: 0;
 }
+
+.filter-modal h3 {
+    margin-top: 0;
+    font-size: 16px;
+}
+
+.filter-option {
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    font-size: 14px;
+}
+
 </style>
 
-<div class="order-history-container">
-    <h2>My Orders</h2>
+<div class="orders-container">
 
-    {% if orders %}
-        {% for order in orders %}
+    <!-- HEADER -->
+    <div class="orders-header">
+        <h2>Orders</h2>
+        <span class="filter-btn" onclick="openFilter()">≡ Filter</span>
+    </div>
+
+    <!-- ORDERS LIST -->
+    {% for order in orders %}
+
+        <div class="order-id">
+            Order Id : {{ order.order_code }}
+        </div>
+
+        <a href="{% url 'order_detail' order.order_code %}"
+           style="text-decoration:none;color:inherit;">
+
             <div class="order-card">
 
-                <!-- ORDER HEADER -->
-                <div class="order-header">
-                    <div>
-                        <strong>Order ID:</strong> {{ order.order_code }} <br>
-                        <small>{{ order.created_at|date:"d M Y" }}</small>
-                    </div>
-                    <div>
-                        <strong>₹{{ order.grand_total }}</strong>
-                    </div>
+                <!-- IMAGE -->
+                <div class="order-img">
+                    <img src="{{ order.items.first.product.image_url }}" alt="">
                 </div>
 
-                <!-- ORDER ITEMS -->
-                <div class="order-body">
-                    {% for item in order.items.all %}
-                        <div class="order-item">
-                            <img src="{{ item.product.image.url }}" alt="{{ item.product_name }}">
-                            <div class="item-info">
-                                <h4>{{ item.product_name }}</h4>
-                                <p>
-                                    Qty: {{ item.quantity }} |
-                                    ₹{{ item.price }} |
-                                    {% if item.size %}Size: {{ item.size }}{% endif %}
-                                </p>
-                                <p class="status {{ item.status }}">
-                                    {{ item.status|capfirst }}
-                                </p>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
+                <!-- INFO -->
+                <div class="order-info">
 
-                <!-- ORDER FOOTER -->
-                <div class="order-footer">
-                    <span class="status {{ order.status }}">
-                        {{ order.status|capfirst }}
-                    </span>
 
-                    <div>
-
-                         <a href="{% url 'order_detail' order.order_code %}" class="btn btn-outline">
-                            View Details
-                        </a>
-
-                        {% if order.status == 'delivered' %}
-                            <a href="#" class="btn btn-primary">
-                                Buy Again
-                            </a>
-                        {% endif %}
+                       <!-- BRAND NAME -->
+                    <div class="brand-name">
+                        <h4>UnityThreads</h4>
                     </div>
+
+                    <!-- PRODUCT NAME -->
+                    <div class="product-name">
+                        {{ order.items.first.product.name }}
+                    </div>
+
+                    <!-- SIZE -->
+                    {% if order.items.first.size %}
+                    <div class="size-text">
+                        Size: {{ order.items.first.size }}
+                    </div>
+                    {% endif %}
+
+                    <!-- MULTIPLE ITEMS -->
+                    {% if order.items.count > 1 %}
+                    <div class="more-items">
+                        + {{ order.items.count|add:"-1" }} more item(s)
+                    </div>
+                    {% endif %}
+
                 </div>
 
+                <!-- ARROW -->
+                <div class="arrow">›</div>
             </div>
-        {% endfor %}
-    {% else %}
-        <p>You have not placed any orders yet.</p>
-    {% endif %}
+
+        </a>
+    {% empty %}
+        <p>No orders found.</p>
+    {% endfor %}
 </div>
+
+<!--&lt;!&ndash; ================= FILTER MODAL ================= &ndash;&gt;-->
+<!--<div class="filter-modal" id="filterModal">-->
+<!--    <h3>Filter Orders</h3>-->
+<!--    <div class="filter-option">All Orders</div>-->
+<!--    <div class="filter-option">Last 30 Days</div>-->
+<!--    <div class="filter-option">Last 6 Months</div>-->
+<!--    <div class="filter-option" onclick="closeFilter()">Close</div>-->
+<!--</div>-->
+
+<script>
+function openFilter() {
+    document.getElementById('filterModal').classList.add('active');
+}
+
+function closeFilter() {
+    document.getElementById('filterModal').classList.remove('active');
+}
+</script>
 
 {% endblock %}
