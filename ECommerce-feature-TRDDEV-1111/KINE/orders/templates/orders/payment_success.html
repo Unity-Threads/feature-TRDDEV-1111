@@ -1,0 +1,123 @@
+
+
+{% extends 'landing/base.html' %}
+{% block title %}Payment Successful{% endblock %}
+
+{% block content %}
+<style>
+/* ===== PAGE CONTAINER ===== */
+.payment-success-container {
+    max-width: 700px;
+    margin: 80px auto;
+    background: #fff;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    text-align: center;
+    font-family: 'Segoe UI', sans-serif;
+    animation: fadeIn 0.8s ease-in-out;
+}
+
+/* ===== SUCCESS ICON ===== */
+.success-icon {
+    font-size: 60px;
+    color: #28a745;
+    margin-bottom: 20px;
+    animation: pop 0.6s ease;
+}
+
+/* ===== HEADINGS ===== */
+.payment-success-container h1 {
+    font-size: 32px;
+    margin-bottom: 10px;
+}
+
+.payment-success-container p {
+    font-size: 16px;
+    margin: 8px 0;
+    color: #555;
+}
+
+/* ===== ORDER DETAILS ===== */
+.order-details {
+    text-align: left;
+    margin-top: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border: 1px solid #eee;
+}
+
+.order-details h3 {
+    margin-bottom: 12px;
+    color: #333;
+}
+
+.order-details p {
+    margin: 4px 0;
+}
+
+/* ===== CONTINUE SHOPPING BUTTON ===== */
+.continue-btn {
+    display: inline-block;
+    margin-top: 30px;
+    padding: 14px 30px;
+    background: #000;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.continue-btn:hover {
+    background: #333;
+    transform: translateY(-2px);
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pop {
+    0% { transform: scale(0); }
+    70% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .payment-success-container {
+        padding: 30px 20px;
+    }
+}
+</style>
+
+
+<div class="payment-success-container">
+    <div class="success-icon">✅</div>
+    <h1>Payment Successful!</h1>
+    <p>Thank you, {{ user.first_name|default:user.username }}. Your order has been placed successfully.</p>
+
+    <div class="order-details">
+        <h3>Order Summary</h3>
+        <p><strong>Order ID:</strong> {{ order.id }}</p>
+        <p><strong>Total Paid:</strong> ₹{{ order.total_price|floatformat:2 }}</p>
+        {% if order.size %}
+        <p><strong>Selected Size:</strong> {{ order.size.name }}</p>
+        {% endif %}
+
+        <h3>Delivery Address</h3>
+        <p>{{ order.address.fullname }}</p>
+        <p>{{ order.address.address1 }}{% if order.address.address2 %}, {{ order.address.address2 }}{% endif %}</p>
+        <p>{{ order.address.city }}, {{ order.address.state }}, {{ order.address.country }} - {{ order.address.pincode }}</p>
+        <p>Phone: {{ order.address.mobile }}</p>
+    </div>
+
+    <a href="{% url 'product_list' %}" class="continue-btn">Continue Shopping</a>
+</div>
+
+{% endblock %}

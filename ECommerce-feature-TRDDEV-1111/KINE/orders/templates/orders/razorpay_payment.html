@@ -1,0 +1,157 @@
+{% extends 'landing/base.html' %}
+{% block title %}Products{% endblock %}
+{% load static %}
+{% block content %}
+
+<style>
+.payment-container {
+    max-width: 700px;
+    margin: 100px 270px ;
+    padding: 30px;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.payment-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.payment-header h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: #222;
+}
+
+.payment-header p {
+    color: #555;
+    font-size: 15px;
+}
+
+.order-summary {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 25px;
+}
+
+.order-summary h3 {
+    font-size: 20px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 8px;
+}
+
+.order-summary-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.order-summary-item span:first-child {
+    font-weight: 500;
+}
+
+
+.order-summary-total {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+    font-size: 18px;
+    border-top: 1px solid #ddd;
+    padding-top: 12px;
+    margin-top: 12px;
+}
+
+
+/* Centered Pay Button */
+
+.pay-btn-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+.payment-btn {
+    display: inline-block;
+    background-color: #fff;
+    color: #000;
+    font-size: 18px;
+    font-weight: 600;
+    padding: 14px 40px;
+    border: none;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: 0.3s;
+    text-align: center;
+}
+
+.payment-btn:hover {
+    opacity: 0.9;
+}
+
+/* Mobile View */
+@media (max-width: 600px) {
+    .payment-container {
+        margin: 20px 10px;
+        padding: 20px;
+    }
+    .payment-header h2 {
+        font-size: 22px;
+    }
+}
+</style>
+
+<div class="payment-container">
+    <div class="payment-header">
+        <h2>Secure Payment</h2>
+        <p>Complete your purchase securely using Razorpay</p>
+    </div>
+
+    <!-- Order Summary -->
+    <div class="order-summary">
+        <h3>Order Summary</h3>
+        {% for item in cart_items %}
+        <div class="order-summary-item">
+            <span>{{ item.product.name }} × {{ item.quantity }}</span>
+            <span>₹{{ item.product.price|floatformat:2 }}</span>
+        </div>
+        {% endfor %}
+        <div class="order-summary-total">
+            <span>Total</span>
+            <span>₹{{ total_price|floatformat:2 }}</span>
+        </div>
+    </div>
+
+    <!-- Centered Payment Button -->
+    <div class="pay-btn-container">
+        <form id="razorpay-form" method="POST" action="{% url 'razorpay_success' %}">
+            {% csrf_token %}
+            <script
+                src="https://checkout.razorpay.com/v1/checkout.js"
+                data-key="{{ razorpay_key_id }}"
+                data-amount="{{ amount }}"
+                data-currency="INR"
+                data-order_id="{{ razorpay_order_id }}"
+                data-buttontext="Pay ₹{{ total_price|floatformat:2 }}"
+                data-name="MyShop"
+                data-description="Order Payment"
+                data-image="{% static 'images/logo.png' %}"
+                data-prefill.name="{{ user.get_full_name }}"
+                data-prefill.email="{{ user.email }}"
+                data-theme.color="#000000">
+            </script>
+            <input type="hidden" name="hidden" value="Hidden Element">
+        </form>
+    </div>
+
+    <p style="text-align:center; margin-top:15px; font-size:13px; color:#888;">
+        🔒 Your payment is secured by <strong>Razorpay</strong>.
+    </p>
+</div>
+{% endblock %}

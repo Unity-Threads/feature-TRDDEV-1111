@@ -1,0 +1,174 @@
+{% extends 'landing/base.html' %}
+{% block title %}Products{% endblock %}
+
+{% block content %}
+
+<style>
+
+.confirm-order-container {
+    max-width: 1200px;
+    margin: 100px 10px;
+    display: flex;
+    gap: 30px;
+    flex-wrap: wrap;
+    font-family: 'Segoe UI', sans-serif;
+}
+.left-section { flex: 2; min-width: 650px; }
+.right-section {
+    flex: 1;
+    min-width: 320px;
+    border: 1px solid #e5e5e5;
+    border-radius: 10px;
+    padding: 25px;
+    background: #fff;
+    height: fit-content;
+}
+.address-box {
+    background: #f9f9f9;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+}
+.address-box h3 { font-size: 20px; margin-bottom: 12px; }
+.address-box p { font-size: 15px; margin: 5px 0; }
+.cart-item {
+    display: flex;
+    gap: 20px;
+    padding: 15px 0;
+    border-bottom: 2px solid #eee;
+    border-radius: 10px;
+}
+.cart-item img {
+    width: 120px;
+    height: 140px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+.cart-item-details h4 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+.cart-item-details p { font-size: 14px; margin: 4px 0; }
+.quantity { font-weight: 600; }
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 16px;
+}
+.total-price {
+    font-weight: bold;
+    font-size: 18px;
+    border-top: 1px solid #ddd;
+    padding-top: 12px;
+    margin-top: 12px;
+}
+.proceed-btn {
+    width: 100%;
+    background: #000;
+    color: white;
+    padding: 14px;
+    border-radius: 8px;
+    border: none;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 20px;
+    text-align: center;
+}
+.proceed-btn:hover { opacity: 0.9; }
+
+@media (max-width: 768px) {
+    .confirm-order-container { flex-direction: column; padding: 10px; }
+    .left-section, .right-section { width: 100%; }
+    .cart-item { flex-direction: column; align-items: center; }
+    .cart-item img { width: 150px; height: 180px; }
+}
+</style>
+
+<div class="confirm-order-container">
+
+    <!-- LEFT SIDE: ADDRESS & CART ITEMS -->
+    <div class="left-section">
+
+        <!-- SELECTED DELIVERY ADDRESS -->
+        <div class="address-box">
+            <h3>Delivery Address</h3>
+            {% if selected_address %}
+                <p><strong>{{ selected_address.fullname }}</strong></p>
+                <p>{{ selected_address.address1 }}{% if selected_address.address2 %}, {{ selected_address.address2 }}{% endif %}</p>
+                <p>{{ selected_address.cityc }}, {{ selected_address.state }}, {{ selected_address.country }} - {{ selected_address.pincode }}</p>
+                <p>Phone: {{ selected_address.mobile }}</p>
+                <p><a href="{% url 'address:address_list' %}" style="color:#007bff;text-decoration:none;">Change Address</a></p>
+            {% else %}
+                <p>No address selected. Please select an address in your cart.</p>
+            {% endif %}
+        </div>
+
+        <!-- SELECTED CART ITEMS ONLY -->
+        {% if cart_items %}
+            {% for item in cart_items %}
+            <div class="cart-item">
+                <img src="{{ item.product.image_url }}" alt="{{ item.product.name }}">
+                <div class="cart-item-details">
+                    <h4>{{ item.product.name }}</h4>
+                    <p>Size: {{ item.size|default:"N/A" }}</p>
+                    <p>Quantity: <span class="quantity">{{ item.quantity }}</span></p>
+                    <p>Subtotal: ₹{{ item.subtotal|floatformat:2 }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p style="font-size:16px;">No items selected. Please go back to your cart.</p>
+        {% endif %}
+
+    </div>
+
+    <!-- RIGHT SIDE: ORDER SUMMARY -->
+    <div class="right-section">
+        <h3>Order Summary</h3>
+
+        <div class="summary-item">
+            <span>Subtotal</span>
+            <span>₹{{ subtotal|floatformat:2 }}</span>
+        </div>
+
+        <div class="summary-item">
+            <span>Tax ({{ tax_rate }}%)</span>
+            <span>₹{{ taxes|floatformat:2 }}</span>
+        </div>
+
+        <div class="summary-item">
+            <span>Delivery Charges</span>
+            {% if subtotal >= min_free_delivery %}
+                <span style="color:green;">Free</span>
+            {% else %}
+                <span>₹{{ delivery_charge|floatformat:2 }}</span>
+            {% endif %}
+        </div>
+
+        <div class="total-price">
+            <span>Total</span>
+            <span>₹{{ total_price|floatformat:2 }}</span>
+        </div>
+
+        <p style="font-size:13px; color:#555; margin-top:10px;">
+            <strong>Note:</strong> Free delivery for orders above ₹{{ min_free_delivery|floatformat:2 }}.
+        </p>
+
+        <!-- Proceed to Payment -->
+        <form action="{% url 'razorpay_payment' %}" method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="amount" value="{{ total_price }}">
+            {% if selected_address %}
+                <input type="hidden" name="selected_address" value="{{ selected_address.id }}">
+            {% endif %}
+            <input type="hidden" name="items" value="{{ request.GET.items }}">
+            <button type="submit" class="proceed-btn">Proceed to Payment</button>
+        </form>
+    </div>
+
+</div>
+{% endblock %}
