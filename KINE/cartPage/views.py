@@ -11,8 +11,10 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.auth import authenticate, login as auth_login
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from tomlkit import item
 from app.models import Product, ProductStock
+from wishlist.models import Wishlist
 # -------------------------------
 # Python Imports
 # -------------------------------
@@ -25,7 +27,6 @@ from decimal import Decimal
 from .models import CartItem, TaxesAndCharges
 from app.models import Product,Size
 from address.models import Address
-# ✅ Helper to safely get tax/delivery settings
 
 def get_tax_settings():
     taxes_and_charges = TaxesAndCharges.objects.first()
@@ -69,7 +70,7 @@ def add_to_cart(request):
         cart_item, created = CartItem.objects.get_or_create(
             user=request.user,
             product=product,
-            size=size,  # ✅ FIXED
+            size=size,  
             defaults={
                 'image_url': product.image_url,
                 'name': product.name,
@@ -95,7 +96,6 @@ def add_to_cart(request):
 
     return JsonResponse({'success': False, 'message': 'Login required'})
 
-# ✅ CART PAGE
 def cart(request):
     """Render cart page for the current user."""
     settings_data = get_tax_settings()
@@ -106,13 +106,16 @@ def cart(request):
     if request.user.is_authenticated:
         cart_items = CartItem.objects.filter(user=request.user)
         addresses = Address.objects.filter(user=request.user)
+        wishlist_items = Wishlist.objects.filter(user=request.user).select_related("product")
     else:
         cart_items = []
         addresses = None
+        wishlist_items = []
 
-    # Calculate totals
+    # ----------------- CALCULATIONS -----------------
     total_items = 0
     all_items_eligible_for_cod = True
+
     for item in cart_items:
         item.subtotal = item.price * item.quantity
         total_items += item.quantity
@@ -127,19 +130,19 @@ def cart(request):
         if not item.is_available_for_cod:
             all_items_eligible_for_cod = False
 
-
     total_price = sum(item.price * item.quantity for item in cart_items)
     delivery_charge = 0 if total_price >= min_amount_for_free_delivery else delivery_charges
     taxes = (tax_percentage / Decimal(100)) * total_price
     grand_total = total_price + taxes + delivery_charge
 
-    # ✅ Determine default address
+    # ----------------- DEFAULT ADDRESS -----------------
     default_address = None
     if addresses:
         default_address = addresses.filter(is_default=True).first() or addresses.first()
 
     return render(request, "cartPage/cart.html", {
         "cart_items": cart_items,
+        "wishlist_items": wishlist_items,
         "total_items": total_items,
         "total_price": total_price,
         "addresses": addresses,
@@ -153,7 +156,6 @@ def cart(request):
     })
 
 
-# ✅ CHECKOUT VIEW
 def checkout_view(request):
     addresses = Address.objects.filter(user=request.user)
     default_address = addresses.filter(is_default=True).first() or addresses.first()
@@ -172,39 +174,55 @@ def checkout_view(request):
     })
 
 
-# ✅ AJAX CART ITEM UPDATE
+@require_POST
+@login_required
 def update_cart(request, item_id):
-    """AJAX handler to increase/decrease cart item quantity for the logged-in user."""
-    if request.method != "POST":
-        return JsonResponse({"error": "Invalid request"}, status=400)
+    data = json.loads(request.body)
+    action = data.get("action")
 
-    if not request.user.is_authenticated:
-        return JsonResponse({"error": "User not authenticated"}, status=403)
+    cart_item = get_object_or_404(CartItem, id=item_id, user=request.user)
 
-    try:
-        data = json.loads(request.body)
-        action = data.get("action")
-        cart_item = get_object_or_404(CartItem, id=item_id, user=request.user)
+    stock_obj = ProductStock.objects.filter(
+        product=cart_item.product,
+        size=cart_item.size
+    ).first()
 
-        if action == "increase":
-            cart_item.quantity += 1
-        elif action == "decrease":
-            cart_item.quantity -= 1
-            if cart_item.quantity <= 0:
-                cart_item.delete()
-                return _cart_summary_response(request.user, removed=True)
-        else:
-            return JsonResponse({"error": "Invalid action"}, status=400)
+    available_stock = stock_obj.stock if stock_obj else 0
 
-        cart_item.save()
-        return _cart_summary_response(request.user, updated_item=cart_item)
+    if action == "increase":
+        if cart_item.quantity >= available_stock:
+            return JsonResponse({
+                "error": "Stock limit reached",
+                "quantity": cart_item.quantity,
+                "stock": available_stock
+            }, status=400)
 
-    except CartItem.DoesNotExist:
-        return JsonResponse({"error": "Item not found"}, status=404)
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        cart_item.quantity += 1
 
-# ✅ HELPER: Recalculate and format cart summary (improved)
+    elif action == "decrease":
+        cart_item.quantity -= 1
+        if cart_item.quantity <= 0:
+            cart_item.delete()
+            return _cart_summary_response(request.user, removed=True)
+
+    else:
+        return JsonResponse({"error": "Invalid action"}, status=400)
+
+    cart_item.save() 
+
+    item_subtotal = Decimal(cart_item.price) * cart_item.quantity
+
+    return JsonResponse({
+        "quantity": cart_item.quantity,
+        "subtotal": float(item_subtotal),
+        "stock": available_stock,
+        "all_items_eligible_for_cod": all(
+            item.is_available_for_cod
+            for item in CartItem.objects.filter(user=request.user)
+        )
+    })
+
+
 def _cart_summary_response(user, updated_item=None, removed=False):
     settings_data = get_tax_settings()
     tax_percentage = Decimal(settings_data["tax"])  # use Decimal for money math

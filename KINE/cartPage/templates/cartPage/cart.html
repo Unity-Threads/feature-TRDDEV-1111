@@ -31,67 +31,122 @@
             color: gray;
             pointer-events: none;
         }
+
+        .empty-cart-container {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .wishlist-preview {
+            display: flex;
+            justify-content: center;   /* center based on item count */
+            align-items: center;
+            gap: 16px;
+            margin-top: 12px;
+            flex-wrap: nowrap;         /* ❌ no wrapping → single line */
+        }
+
+        /* Wishlist card */
+        .wishlist-card {
+            width: 160px;
+            height: 160px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #f9fafb;
+            flex-shrink: 0;            /* prevent shrinking */
+        }
+
+        .wishlist-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .main-cart-div.empty-cart-layout {
+            grid-template-columns: 1fr;      
+            justify-items: center;           
+        }
+
+        .main-cart-div.empty-cart-layout .empty-cart-container {
+            max-width: 600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Mobile fix */
+        @media (max-width: 768px) {
+            .main-cart-div {
+                grid-template-columns: 1fr !important;
+                padding: 0 12px;
+            }
+            .wishlist-card {
+                width: 110px;
+                height: 110px;
+            }
+
+            .wishlist-preview {
+                gap: 12px;
+            }
+        }
+
     </style>
 </head>
 
 <body>
 
 
-    <div class="main-cart-div">
-        <!-- CART ITEMS SECTION -->
-        <div class="cart-items-div">
-            <div class="cart-header">
-                <h1 style="text-align:center;">Cart Items</h1>
-            </div>
-
-            <!-- Select All Button -->
-            <div class="select-all-container">
-                <input type="checkbox" id="select-all" checked>
-                <label for="select-all">Select All</label>
-            </div>
-
-            <!-- Cart Items -->
-            {% for item in cart_items %}
-            <div class="cart-item">
-                <div class="cart-item-select">
-                    <input type="checkbox" class="item-checkbox select-item" id="item-{{ item.id }}" data-id="{{ item.id }}" data-cod="{{ item.is_available_for_cod|yesno:'true,false' }}" checked>
+    <div class="main-cart-div {% if not cart_items %}empty-cart-layout{% endif %}">
+            <!-- CART ITEMS SECTION -->
+            <div class="cart-items-div cart-layout" {% if not cart_items %}style="display: none;"{% endif %}>
+                <div class="cart-header">
+                    <h1 style="text-align:center;">Cart Items</h1>
                 </div>
-                <a href="#"><img src="{{ item.image_url }}" alt="{{ item.name }}" class="cart-item-image"></a>
-                <div class="cart-item-details">
-                    <div class="cart-item-left">
-                        <div class="cart-item-name">{{ item.name }}</div>
-                        <div class="cart-item-price"><span>Price:</span> ₹{{ item.price }}</div>
-                        <div class="cart-item-color"><span>Color:</span> {{ item.color }}</div>
-                        <div class="cart-item-size"><span>Size:</span> {{ item.size }}</div>
+
+                <!-- Select All Button -->
+                <div class="select-all-container">
+                    <input type="checkbox" id="select-all" checked>
+                    <label for="select-all">Select All</label>
+                </div>
+
+                <!-- Cart Items -->
+                {% for item in cart_items %}
+                <div class="cart-item">
+                    <div class="cart-item-select">
+                        <input type="checkbox" class="item-checkbox select-item" id="item-{{ item.id }}" data-id="{{ item.id }}" data-cod="{{ item.is_available_for_cod|yesno:'true,false' }}" checked>
                     </div>
-                    <div class="cart-item-right">
-                        <div class="cart-item-quantity">
-                            <span>Quantity:</span>
-                            <button class="qty-btn decrease" data-id="{{ item.id }}">-</button>
-                            <span class="quantity-value" id="qty-{{ item.id }}">{{ item.quantity }}</span>
-                            <button class="qty-btn increase" 
-                                    data-id="{{ item.id }}" 
-                                    data-stock="{{ item.stock }}"
-                                    {% if item.quantity >= item.stock %}disabled{% endif %}>
-                                +
-                            </button>
+                    <a href="#"><img src="{{ item.image_url }}" alt="{{ item.name }}" class="cart-item-image"></a>
+                    <div class="cart-item-details">
+                        <div class="cart-item-left">
+                            <div class="cart-item-name">{{ item.name }}</div>
+                            <div class="cart-item-price"><span>Price:</span> ₹{{ item.price }}</div>
+                            <div class="cart-item-color"><span>Color:</span> {{ item.color }}</div>
+                            <div class="cart-item-size"><span>Size:</span> {{ item.size }}</div>
                         </div>
-                        <div class="cart-item-subtotal" id="subtotal-{{ item.id }}">
-                            ₹{{ item.subtotal|floatformat:2 }}
+                        <div class="cart-item-right">
+                            <div class="cart-item-quantity">
+                                <span>Quantity:</span>
+                                <button class="qty-btn decrease" data-id="{{ item.id }}">-</button>
+                                <span class="quantity-value" id="qty-{{ item.id }}">{{ item.quantity }}</span>
+                                <button class="qty-btn increase" 
+                                        data-id="{{ item.id }}" 
+                                        data-stock="{{ item.stock }}"
+                                        {% if item.quantity >= item.stock %}disabled{% endif %}>
+                                    +
+                                </button>
+                            </div>
+                            <div class="cart-item-subtotal" id="subtotal-{{ item.id }}">
+                                ₹{{ item.subtotal|floatformat:2 }}
+                            </div>
+                            <div class="tax"></div>
                         </div>
-                        <div class="tax"></div>
                     </div>
                 </div>
+                {% endfor %}
             </div>
-            {% endfor %}
 
-            {% if not cart_items %}
-            <p>Your cart is empty.</p>
-            {% endif %}
-        </div>
-
-        <!-- CART SUMMARY SECTION -->
-        <div class="cart-summary-div">
+            <!-- CART SUMMARY SECTION -->
+            <div class="cart-summary-div cart-layout" {% if not cart_items %}style="display: none;"{% endif %}>
             <div class="cart-summary">
                 <h2>Order Summary</h2>
 
@@ -108,7 +163,7 @@
                 </div>
             </div>
 
-           {% if addresses %}
+        {% if addresses %}
             <div class="address-dropdown">
                 <label for="selected_address" class="address-label">Select your delivery address:</label>
                 <div class="custom-select-wrapper">
@@ -154,7 +209,6 @@
                 <!-- Hidden meta data for JS -->
                 <input type="hidden" id="tax-rate" value="{{ taxes_and_charges.tax }}">
                 <input type="hidden" id="delivery-charge-base" value="{{ taxes_and_charges.delivery_charges }}">
-<!--                <input type="hidden" id="min-amount-for-free-delivery" value="{{ taxes_and_charges.min_amount_for_free_delivery }}">-->
 
                 <p><span class="label">Taxes:</span> <span class="value" id="taxes">₹{{ taxes|floatformat:2 }}</span></p>
                 <p><span class="label">Delivery Charges:</span> <span class="value" id="delivery-charge">₹{{ delivery_charge|floatformat:2 }}</span></p>
@@ -184,7 +238,39 @@
                 <p id="warning-message" class="warning">⚠️ Please select both an address and a payment method before proceeding.</p>
             </div>
         </div>
-    </div>
+            </div>
+
+            <!-- ================= EMPTY CART ================= -->
+
+            <div id="empty-cart-layout" class="empty-cart-container" {% if cart_items %}style="display:none"{% endif %}>
+                <h2>Your cart is empty 🛒</h2>
+                <p>Looks like you haven’t added anything yet.</p>
+
+                {% if wishlist_items %}
+                    <h3>From your wishlist ❤️</h3>
+
+                    <div class="wishlist-preview">
+                        {% for w in wishlist_items|slice:":3" %}
+                        
+                            <div class="wishlist-card">
+                                <img src="{{ w.product.image_url }}" alt="{{ w.product.name }}">
+                            </div>
+                        {% endfor %}
+                    </div>
+
+
+                    <a href="{% url 'wishlist_view' %}" class="checkout-button">
+                        Go to Wishlist
+                    </a>
+
+                {% else %}
+                    <p>Your wishlist is also empty.</p>
+                    <a href="{% url 'home' %}" class="checkout-button">
+                        Go to Home
+                    </a>
+                {% endif %}
+            </div>
+
     </div>
 
 
