@@ -31,12 +31,16 @@
             </div>
 
             <div class="footer-section">
-                <h3>Quick links</h3>
-                <p><a href="./redirect.html">Terms & conditions</a></p>
+               <h3>Quick links</h3>
+              
+                <p><a href="{% url 'terms_co:terms' %}">Terms & Conditions</a></p>
+
+
                 <p><a href="./redirect.html">Privacy Policy</a></p>
-                <p><a href="./redirect.html">About us</a></p>
+                <p><a href="{% url 'about' %}">Aboutus</a></p>
+
                 <p><a href="./redirect.html">Return policy</a></p>
-                <p><a href="./redirect.html">FAQ</a></p>
+                <p><a href="{% url 'faqs' %}">FAQ</a></p>
             </div>
 
             <div class="footer-section">
