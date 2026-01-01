@@ -1,0 +1,229 @@
+{% extends 'landing/base.html' %}
+{% block title %}Products{% endblock %}
+
+{% block content %}
+<style>
+
+/* ====== Container ====== */
+.wishlist-container {
+    max-width: 1400px;
+    margin-top: 100px;
+    padding: 5px;
+}
+
+/* ====== Wishlist Items Grid ====== */
+
+.wishlist-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 3px;
+}
+
+/* ====== Individual Card ====== */
+
+.wishlist-card {
+
+    background: #fff;
+    border-radius: 0px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s;
+}
+
+.wishlist-card:hover {
+    transform: translateY(-5px);
+}
+
+/* ====== Product Image ====== */
+
+.wishlist-card img {
+    width: 100%;
+    height: 320px;
+    object-fit: cover;
+}
+
+/* ====== Product Info ====== */
+
+.card-info {
+    padding: 5px;
+    flex: 1;
+}
+
+.card-info h3 {
+    font-size: 1.1rem;
+    margin: 0 0 10px 0;
+}
+
+.card-info p {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #333;
+}
+
+/* ====== Heart Icon Button ====== */
+
+.wishlist-btn {
+    position: absolute;
+    top: 8px;
+    right: 5px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    z-index: 10;
+    transition: transform 0.2s ease;
+}
+
+.wishlist-btn:hover {
+    transform: scale(1.2);
+}
+
+.heart-icon {
+    width: 24px;
+    height: 24px;
+    fill: #ff6b6b;       /* filled for wishlist items */
+    stroke: black;
+}
+.empty-msg {
+    text-align: center;
+    margin: 50px 0;
+    font-size: 1.3rem;
+    color: #666;
+}
+
+
+
+/* ====== MOBILE ADJUSTMENTS ====== */
+@media screen and (max-width: 480px) {
+
+    .wishlist-grid {
+        grid-template-columns: repeat(2, 1fr); /* still 2 columns on small phones */
+        gap: 10px;
+    }
+
+    .wishlist-card img {
+        height: 200px;
+    }
+
+    .card-info h3 {
+        font-size: 0.9rem;
+    }
+
+    .card-info p {
+        font-size: 0.85rem;
+    }
+
+    .wishlist-btn {
+        top: 5px;
+        right: 5px;
+        padding: 3px;
+    }
+
+    .heart-icon {
+        width: 16px;
+        height: 16px;
+    }
+}
+</style>
+
+<div class="wishlist-container">
+    <h1>My Wishlist</h1>
+    <br>
+
+    {% if wishlist_items %}
+    <div class="wishlist-grid">
+        {% for item in wishlist_items %}
+        <div class="wishlist-card" data-id="{{ item.product.id }}">
+            <button class="wishlist-btn" onclick="toggleWishlist(event, this)" data-id="{{ item.product.id }}">
+                <svg class="heart-icon" viewBox="0 0 24 24">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
+                             2 5.42 4.42 3 7.5 3c1.74 0 3.41 0.81 4.5 2.09
+                             C13.09 3.81 14.76 3 16.5 3
+                             19.58 3 22 5.42 22 8.5
+                             c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+            </button>
+            <a href="{% url 'product_detail' item.product.id %}">
+                <img src="{{ item.product.image_url }}" alt="{{ item.product.name }}">
+            </a>
+            <div class="card-info">
+                <h3>{{ item.product.name }}</h3>
+                <p>₹ {{ item.product.price }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty-msg">Your wishlist is empty.</p>
+    {% endif %}
+</div>
+
+<script>
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Toggle wishlist via AJAX
+function toggleWishlist(event, btn) {
+    event.preventDefault();
+    const productId = btn.dataset.id;
+    const csrftoken = getCookie('csrftoken');
+
+    fetch(`/wishlist/toggle/${productId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/json'
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+
+        // --------------------------------------------
+        // PRODUCT REMOVED FROM WISHLIST
+        // --------------------------------------------
+        if (data.added === false) {
+
+            // 🔥 Save remove info to sync with product detail page
+            localStorage.setItem("wishlist_removed_" + productId, "true");
+
+            // Remove card from wishlist page
+            const card = btn.closest('.wishlist-card');
+            card.remove();
+
+            // Show empty message if no items left
+            if (document.querySelectorAll('.wishlist-card').length === 0) {
+                document.querySelector('.wishlist-container')
+                .innerHTML += '<p class="empty-msg">Your wishlist is empty.</p>';
+            }
+        }
+
+        // --------------------------------------------
+        // HANDLE ERRORS
+        // --------------------------------------------
+        else if (data.error) {
+            alert(data.error);
+        }
+    })
+    .catch(err => console.error(err));
+}
+
+</script>
+{% endblock %}
