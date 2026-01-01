@@ -1,0 +1,431 @@
+{% extends 'landing/base.html' %}
+{% load static %}
+
+{% block title %}About Us{% endblock %}
+
+{% block content %}
+<!-- AOS & FontAwesome (CDN) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" integrity="sha512-Gz8m2f8V6qM1Xf0K1Y2v2lFQj0x3mGg3Z2q3YJk+v6j4QxR1Qf0p5qE5k8x9oN6kG5Q8b9YQm9w5f5g7u6zYg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js" integrity="sha512-odrENs5Ym6Cs8r1sQ6g1s2x3Q2k6m3qHh2t6q3Z5x9w5y7z1b2n3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+<style>
+/* Page background & wrapper */
+.page-bg {
+  background: linear-gradient(180deg, #f6f6f6 0%, #ffffff 40%, #f8f8f8 100%);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.about-wrapper {
+  width: 100vw;
+  max-width: 100vw;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+/* Hero Section */
+.about-hero {
+  padding: 80px 48px 20px;
+  text-align: center;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  background: linear-gradient(90deg, #fff, #f8f8f8);
+}
+
+.about-hero h1 {
+  font-size: 38px;
+  margin-bottom: 8px;
+  color: #0a0a0a;
+  font-weight: 700;
+}
+
+.about-hero p.lead {
+  font-size: 16px;
+  color: #5a5a5a;
+  margin: 0;
+}
+
+/* Main content grid */
+.about-main {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 32px;
+  padding: 24px 16px;
+  max-width: 1400px;
+  margin: auto;
+}
+
+/* Left Column Sections */
+.left-col .about-section {
+  margin-bottom: 26px;
+  padding: 24px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.03);
+  border-left: 6px solid rgba(0,0,0,0.06);
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+.left-col .about-section:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.section-head i {
+  font-size: 20px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  border-radius: 8px;
+  color: #222;
+  border: 1px solid rgba(0,0,0,0.04);
+}
+
+.about-section h2 {
+  font-size: 20px;
+  margin: 0;
+  color: #111;
+  font-weight: 600;
+}
+
+.about-section p {
+   padding-left: 50px;
+  margin-top: 12px;
+  color: #4b4b4b;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* Checklist points for unique_points */
+.check-list p {
+  position: relative;
+  padding-left: 70px;
+  margin: 8px 0;
+}
+.check-list p::before {
+  content: '\2713';
+  position: absolute;
+  left: 50px;
+  top: 0;
+  color: #222;
+  font-weight: 700;
+}
+
+/* Right Column */
+.right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* Founder Card */
+.founder-card {
+  padding: 18px;
+  border-radius: 10px;
+  background: #fafafa;
+  border: 1px solid rgba(0,0,0,0.04);
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+.founder-avatar {
+  width: 84px;
+  height: 84px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #eaeaea;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.founder-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Timeline */
+.timeline {
+  padding: 16px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.04);
+}
+.timeline-list {
+  position: relative;
+  padding-left: 20px;
+}
+.timeline-list::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(#ddd,#bbb);
+  border-radius: 2px;
+}
+.timeline-item {
+  position: relative;
+  margin-bottom: 22px;
+  padding-left: 22px;
+}
+.timeline-item .dot {
+  position: absolute;
+  left: -2px;
+  width: 12px;
+  height: 12px;
+  background: #111;
+  border-radius: 50%;
+  top: 4px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.06);
+}
+.timeline-item h5 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: #111;
+  font-weight: 600;
+}
+.timeline-item p {
+  margin: 0;
+  color: #555;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Make Timeline Scrollable */
+.timeline {
+  padding: 16px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.04);
+  max-height: 910px;          /* FIXED HEIGHT */
+  overflow-y: auto;           /* VERTICAL SCROLL */
+  overflow-x: hidden;
+  scroll-behavior: smooth;    /* Smooth scroll */
+}
+
+/* Scrollbar styling */
+.timeline::-webkit-scrollbar {
+  width: 6px;
+}
+
+.timeline::-webkit-scrollbar-thumb {
+  background: #c5c5c5;
+  border-radius: 20px;
+}
+
+.timeline::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
+}
+
+.timeline::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+
+/* Contact box */
+.contact-box {
+  padding: 14px;
+  border-radius: 8px;
+  background: #f7f7f7;
+  border: 1px solid rgba(0,0,0,0.03);
+  font-size: 14px;
+  color: #333;
+}
+
+/* Footer note */
+.about-footer {
+  padding: 22px 24px;
+  text-align: center;
+  border-top: 1px solid rgba(0,0,0,0.04);
+  background: #fff;
+  color: #666;
+  font-size: 13px;
+}
+
+/* Responsive */
+@media (max-width: 980px) {
+  .about-main {
+    grid-template-columns: 1fr 320px;
+    padding: 28px;
+  }
+  {% comment %} .about-hero { padding: 36px 28px 18px; } {% endcomment %}
+}
+@media (max-width: 760px) {
+    .about-hero {
+        margin-top: 90px !important; 
+    }
+}
+
+
+@media (max-width: 760px) {
+  body, html, .page-bg, .about-wrapper, .about-main {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    margin: 0 !important;
+    padding:120 !important;
+  }
+  .about-main {
+    grid-template-columns: 1fr; /* stack columns */
+    padding: 16px;
+  }
+  .about-hero { padding: 28px 18px 14px; }
+  .right-col, .founder-card, .timeline, .contact-box {
+    width: 100%;
+  }
+  .founder-avatar { width: 64px; height: 64px; }
+}
+/* Remove unwanted space under mobile links */
+.mobile-navigation a {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+    display: block;
+}
+
+/* Remove bottom gap of the mobile menu box */
+.mobile-menu-content {
+    padding-bottom: 0 !important;
+}
+
+/* Remove any extra space from container */
+.mobile-navigation {
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+</style>
+
+<div class="page-bg">
+  <div class="about-wrapper" role="main">
+    <!-- HERO -->
+    <div class="about-hero" data-aos="fade-down">
+      <h1>{{ about.title }}</h1>
+      <p class="lead">{{ about.subtitle }}</p>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="about-main">
+      <!-- LEFT COL -->
+      <div class="left-col">
+        <!-- Story -->
+        <div class="about-section" data-aos="fade-up" data-aos-delay="50">
+          <div class="section-head">
+            <i class="fa-solid fa-book-open"></i>
+            <h2>Our Story</h2>
+          </div>
+          <p id="story-content" style="white-space:pre-wrap;">{{ about.story|linebreaksbr }}</p>
+        </div>
+
+        <!-- Mission -->
+        <div class="about-section" data-aos="fade-up" data-aos-delay="100">
+          <div class="section-head">
+            <i class="fa-solid fa-bullseye"></i>
+            <h2>Our Mission</h2>
+          </div>
+          <p>{{ about.mission|linebreaks }}</p>
+        </div>
+
+        <!-- Unique Points -->
+        <div class="about-section check-list" data-aos="fade-up" data-aos-delay="150">
+          <div class="section-head">
+            <i class="fa-solid fa-star"></i>
+            <h2>What Makes Us Unique</h2>
+          </div>
+          {{ about.unique_points|linebreaks }}
+        </div>
+
+        <!-- Quality -->
+        <div class="about-section" data-aos="fade-up" data-aos-delay="200">
+          <div class="section-head">
+            <i class="fa-solid fa-shield-halved"></i>
+            <h2>Quality You Can Trust</h2>
+          </div>
+          <p>{{ about.quality|linebreaks }}</p>
+        </div>
+
+        <!-- Founders Note -->
+        <div class="about-section" data-aos="fade-up" data-aos-delay="250">
+          <div class="section-head">
+            <i class="fa-solid fa-pen-fancy"></i>
+            <h2>A Note From the Founders</h2>
+          </div>
+          <p>{{ about.founders_note|linebreaks }}</p>
+        </div>
+      </div>
+
+      <!-- RIGHT COL -->
+      <aside class="right-col">
+        <!-- Founder -->
+        <div class="founder-card" data-aos="fade-left">
+          <div class="founder-avatar">
+            <img src="{% static 'images/founder.jpg' %}" alt="Founder photo" onerror="this.src='https://via.placeholder.com/160x160?text=Founder'">
+          </div>
+          <div class="founder-meta">
+            <h4>United Therds</h4>
+            <p>Founded by two friends who love creating simple, durable everyday clothing.</p>
+            <p style="margin-top:8px; font-size:13px; color:#666;"><strong>Updated:</strong> {{ about.updated_at|date:"F j, Y" }}</p>
+          </div>
+        </div>
+
+        <!-- Timeline -->
+        {% comment %} <div class="timeline" data-aos="fade-left" data-aos-delay="80">
+          <h3 style="margin:0 0 10px; font-size:16px; color:#111;">Our Journey</h3>
+          <div class="timeline-list" id="timeline-list"></div>
+        </div> {% endcomment %}
+        <div class="timeline" data-aos="fade-left" data-aos-delay="80">
+  <h3 style="margin:0 0 10px; font-size:16px; color:#111;">Our Journey</h3>
+
+  <div class="timeline-list">
+    {% for item in timeline %}
+    <div class="timeline-item">
+      <span class="dot"></span>
+      <h5>{{ item.year }} – {{ item.title }}</h5>
+      <p>{{ item.description }}</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+
+        <!-- Contact -->
+        <div class="contact-box" data-aos="fade-left" data-aos-delay="120">
+          <h4 style="margin:0 0 8px; font-size:15px; color:#111;">Get in Touch</h4>
+          <p style="margin:6px 0;"><strong>Email:</strong> <a href="mailto:{{ about.contact_email }}">{{ about.contact_email }}</a></p>
+          <p style="margin:6px 0;">Follow us on social platforms for new launches and behind-the-scenes.</p>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Footer -->
+    <div class="about-footer" data-aos="fade-up" data-aos-delay="300">
+      <small>United Therds — quality clothing for everyday life.</small>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof AOS !== 'undefined') {
+        AOS.init({
+            once: true,
+            duration: 700
+        });
+    }
+});
+</script>
+
+{% endblock %}

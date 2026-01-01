@@ -1,0 +1,126 @@
+/* Reset */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+}
+
+/* Background */
+body {
+    background: #f9f9f9; /* light grey */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 10px;
+    color: #222; 
+}
+
+/* Box container */
+.form-box {
+    width: 100%;
+    max-width: 400px;
+    background: #fff; /* white card */
+    padding: 25px 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* Heading */
+.form-box h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #111; /* black */
+    font-size: 22px;
+    font-weight: bold;
+}
+
+/* Input fields */
+.form-box input {
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    border: 1px solid #bbb; /* grey border */
+    border-radius: 6px;
+    font-size: 14px;
+    color: #222; /* black text */
+    background: #fff;
+}
+
+.form-box input::placeholder {
+    font-size: 13px;
+    color: #777; /* grey placeholder */
+}
+
+/* Errors & success */
+.error {
+    color: #e63946; /* red */
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+.success {
+    color: #2ecc71; /* green */
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+/* Buttons */
+.btn {
+    margin-top: 15px;
+    width: 100%;
+    padding: 12px;
+    background: #000; /* black */
+    color: #fff; /* white text */
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: background 0.3s ease;
+}
+
+.btn:hover {
+    background: #333; /* dark grey */
+}
+
+/* Password toggle */
+.password-container {
+    position: relative;
+}
+
+.password-container input {
+    padding-right: 35px;
+}
+
+.toggle-eye {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #666; /* grey icon */
+}
+
+.toggle-eye:hover {
+    color: #000; /* black on hover */
+}
+
+/* Links */
+p {
+    margin-top: 10px;
+    text-align: center;
+    font-size: 14px;
+    color: #333; /* grey text */
+}
+
+p a {
+    text-decoration: none;
+    color: #000; /* black link */
+    font-weight: bold;
+}
+
+p a:hover {
+    text-decoration: underline;
+}

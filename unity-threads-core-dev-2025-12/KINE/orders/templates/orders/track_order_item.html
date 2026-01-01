@@ -1,0 +1,17 @@
+{% extends 'landing/base.html' %}
+{% block content %}
+
+<h3>Tracking Order Item</h3>
+
+<p><strong>Product:</strong> {{ item.product.name }}</p>
+<p><strong>Status:</strong> {{ item.status|title }}</p>
+
+<ul>
+    <li>Order Placed</li>
+    <li>Processing</li>
+    <li>Shipped</li>
+    <li>Out for Delivery</li>
+    <li>Delivered</li>
+</ul>
+
+{% endblock %}

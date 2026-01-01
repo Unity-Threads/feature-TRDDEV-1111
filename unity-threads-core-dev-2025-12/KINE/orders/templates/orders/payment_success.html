@@ -1,0 +1,202 @@
+{% extends 'landing/base.html' %}
+{% block title %}Payment Successful{% endblock %}
+
+{% block content %}
+<style>
+
+:root {
+    --primary: #ff3f6c;
+    --success: #28a745;
+    --text-dark: #222;
+    --text-light: #666;
+    --bg-light: #f7f7f7;
+}
+
+.payment-success-wrapper {
+    max-width: 900px;
+    margin: 60px auto;
+    background: #fff;
+    padding: 40px 50px;
+    border-radius: 16px;
+    box-shadow: 0 6px 25px rgba(0,0,0,0.08);
+    animation: fadeUp 0.5s ease-out;
+}
+
+.success-check {
+    text-align: center;
+    font-size: 70px;
+    color: var(--success);
+    animation: pop 0.5s ease-in-out;
+}
+
+.payment-success-wrapper h1 {
+    text-align: center;
+    font-size: 34px;
+    margin-top: 10px;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.payment-success-wrapper p {
+    text-align: center;
+    color: var(--text-light);
+    font-size: 16px;
+}
+
+/* Order summary box */
+.order-summary-box {
+    margin-top: 40px;
+    background: var(--bg-light);
+    padding: 25px 30px;
+    border-radius: 12px;
+    border: 1px solid #e4e4e4;
+}
+
+.order-summary-box h3 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+/* Item card */
+.order-item-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eee;
+    margin-bottom: 15px;
+    transition: 0.3s;
+}
+
+.order-item-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+.order-item-left {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.order-item-left img {
+    width: 90px;
+    height: 110px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.order-item-left div p {
+    margin: 3px 0;
+    color: var(--text-dark);
+    font-size: 15px;
+}
+
+.order-price {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+/* Address box */
+.address-box {
+    margin-top: 40px;
+    background: #fff;
+    padding: 25px 30px;
+    border-radius: 12px;
+    border: 1px solid #ddd;
+}
+
+.address-box h3 {
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+.address-box p {
+    text-align: left;
+    color: var(--text-dark);
+    margin: 4px 0;
+}
+
+/* Button */
+.shop-btn {
+    margin: 35px auto 0 auto;
+    display: block;
+    width: fit-content;
+    padding: 14px 32px;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 600;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+.shop-btn:hover {
+    background: #e7325c;
+    transform: translateY(-2px);
+}
+
+/* Animations */
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pop {
+    0% { transform: scale(0.5); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+</style>
+
+
+<div class="payment-success-wrapper">
+
+    <div class="success-check">✔</div>
+
+    <h1>Payment Successful!</h1>
+    <p>Hi {{ order.user.first_name|default:order.user.username }}, your order has been placed!</p>
+
+    <!-- Order Summary -->
+    <div class="order-summary-box">
+        <h3>Order Summary ({{ order.items.count }} items)</h3>
+
+        {% for item in order.items.all %}
+        <div class="order-item-card">
+            <div class="order-item-left">
+                <img src="{{ item.product.image_url }}" alt="{{ item.product.name }}">
+                <div>
+                    <p><strong>{{ item.product.name }}</strong></p>
+                    <p>Size: {{ item.size }}</p>
+                    <p>Quantity: {{ item.quantity }}</p>
+                </div>
+            </div>
+            <div class="order-price">₹{{ item.price|floatformat:2 }}</div>
+        </div>
+        {% endfor %}
+
+        <h3 style="margin-top:20px; font-weight:700;">
+            Total Paid: ₹{{ order.grand_total|floatformat:2 }}
+        </h3>
+    </div>
+
+    <!-- Address Section -->
+    {% if order.address %}
+    <div class="address-box">
+        <h3>Delivery Address</h3>
+        <p><strong>{{ order.address.fullname }}</strong></p>
+        <p>{{ order.address.address1 }}{% if order.address.address2 %}, {{ order.address.address2 }}{% endif %}</p>
+        <p>{{ order.address.city }}, {{ order.address.state }}, {{ order.address.country }} - {{ order.address.pincode }}</p>
+        <p><strong>Phone:</strong> {{ order.address.mobile }}</p>
+    </div>
+    {% endif %}
+
+    <a href="{% url 'product_list' %}" class="shop-btn">Continue Shopping</a>
+
+</div>
+
+{% endblock %}
