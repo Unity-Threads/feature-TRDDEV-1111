@@ -9,6 +9,7 @@ from decimal import Decimal
 # =========================
 # ORDER
 # =========================
+
 class Order(models.Model):
     order_code = models.CharField(max_length=12, unique=True, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -109,6 +110,7 @@ class Order(models.Model):
 # ORDER ITEM
 # =========================
 class OrderItem(models.Model):
+
     STATUS_CHOICES = (
         ('confirmed', 'Confirmed'),
         ('processing', 'Processing'),

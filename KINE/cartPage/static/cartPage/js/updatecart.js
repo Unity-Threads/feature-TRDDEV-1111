@@ -82,6 +82,7 @@ async function updateCart(itemId, action) {
         }
 
         // ✅ Handle COD eligibility toggle
+
         const codInput = document.getElementById("payment-cod");
         if (codInput && data.hasOwnProperty("all_items_eligible_for_cod")) {
             currentCODStatus = data.all_items_eligible_for_cod;
@@ -225,6 +226,7 @@ function updateCartSummary() {
 // ------------------------------
 // SUMMARY DISPLAY UPDATE
 // ------------------------------
+
 function setSummaryDisplays(total, count, tax, deliveryCharge, grandTotal) {
     const totalDisplay = document.getElementById("total-price");
     const summaryItems = document.getElementById("total-items");
@@ -308,13 +310,15 @@ function getSelectedAddressId() {
     return addressId || null;
 }
 
-
 // -----------------------------------------------------------
-// PLACE ORDER — SEND ITEMS + ADDRESS → REDIRECT TO CONFIRM PAGE
+// PLACE ORDER — SEND ITEMS + ADDRESS + PAYMENT METHOD
 // -----------------------------------------------------------
 async function placeSelectedOrder(selectedItems) {
     try {
-        const addressId = getSelectedAddressId();  // ⭐ selected address ID
+        const addressId = getSelectedAddressId();
+        const paymentMethod = document.querySelector(
+            'input[name="payment_method"]:checked'
+        ).value;
 
         const response = await fetch("/orders/confirm_order/", {
             method: "POST",
@@ -325,25 +329,15 @@ async function placeSelectedOrder(selectedItems) {
             body: JSON.stringify({
                 selected_items: selectedItems,
                 selected_address: addressId,
-            }),
+                payment_method: paymentMethod
+            })
         });
 
         const data = await response.json();
 
         if (data.redirect_url) {
-
-            // Build redirect URL
-            let redirectUrl = data.redirect_url + "?items=" + selectedItems.join(",");
-
-            if (addressId) {
-                redirectUrl += "&selected_address=" + addressId;
-            }
-
-            console.log("Redirecting to:", redirectUrl);
-
-            // Redirect to confirm page
-            window.location.href = redirectUrl;
-            return;
+            // ✅ BOTH COD & PREPAID go to confirm page
+            window.location.href = data.redirect_url;
         }
 
     } catch (err) {
@@ -351,3 +345,5 @@ async function placeSelectedOrder(selectedItems) {
         alert("❌ Error placing order. Try again.");
     }
 }
+
+

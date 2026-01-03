@@ -3,62 +3,103 @@ from django.contrib.auth.decorators import login_required
 from cartPage.models import CartItem,TaxesAndCharges
 from address.models import Address  # adjust paths if needed
 from decimal import Decimal, ROUND_HALF_UP
-
+import json
 from django.http import JsonResponse
 from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
+import json
+
+from decimal import Decimal, ROUND_HALF_UP
+import json
+
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.shortcuts import render, redirect
+from django.urls import reverse
+
+from decimal import Decimal, ROUND_HALF_UP
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.shortcuts import render, redirect
+from django.urls import reverse
+import json
+
+
 @login_required
 def confirm_order(request):
 
-    # ⭐ CASE 1 — AJAX POST from JavaScript
+    # --------------------------------------------------
+    # STEP 1: AJAX POST FROM CART PAGE
+    # (ONLY STORE DATA — NO ORDER CREATION)
+    # --------------------------------------------------
     if request.method == "POST":
-        return JsonResponse({
-            "redirect_url": reverse("confirm_order")
-        })
+        try:
+            data = json.loads(request.body)
 
-    # ⭐ CASE 2 — Normal GET request (for page load)
-    selected_address_id = request.GET.get("selected_address")
+            selected_items = data.get("selected_items", [])
+            selected_address_id = data.get("selected_address")
+            payment_method = data.get("payment_method")
 
-    # ⭐⭐⭐ ADD THIS BLOCK — Update selected address in DB ⭐⭐⭐
-    if selected_address_id and selected_address_id.isdigit():
-        Address.objects.filter(user=request.user, is_selected=True).update(is_selected=False)
-        Address.objects.filter(id=selected_address_id, user=request.user).update(is_selected=True)
+            if not selected_items or not payment_method:
+                return JsonResponse({"error": "Invalid data"}, status=400)
 
-    items_param = request.GET.get("items")
+            # Store in session
+            request.session["selected_items"] = selected_items
+            request.session["selected_address"] = selected_address_id
+            request.session["payment_method"] = payment_method
 
-    if items_param:
-        item_ids = [int(i) for i in items_param.split(",") if i.isdigit()]
-        cart_items = CartItem.objects.filter(user=request.user, id__in=item_ids)
-    else:
-        cart_items = CartItem.objects.filter(user=request.user)
+            # ALWAYS redirect to confirm page
+            return JsonResponse({
+                "redirect_url": reverse("confirm_order")
+            })
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
+    # --------------------------------------------------
+    # STEP 2: CONFIRM ORDER PAGE (GET)
+    # --------------------------------------------------
+    selected_items = request.session.get("selected_items")
+    selected_address_id = request.session.get("selected_address")
+    payment_method = request.session.get("payment_method")
+
+    if not selected_items:
+        return redirect("cart")
+
+    cart_items = CartItem.objects.filter(
+        user=request.user,
+        id__in=selected_items
+    )
 
     if not cart_items.exists():
-        return redirect("product_list")
+        return redirect("cart")
 
-    # ⭐ TAX
+    # ---------------- PRICE CALCULATION ----------------
     tax_obj = TaxesAndCharges.objects.first()
-
-    if tax_obj:
-        tax_rate = Decimal(tax_obj.tax)
-        delivery_charge = Decimal(tax_obj.delivery_charges)
-        min_free_delivery = Decimal(tax_obj.min_amount_for_free_delivery)
-    else:
-        tax_rate = Decimal("0.00")
-        delivery_charge = Decimal("0.00")
-        min_free_delivery = Decimal("0.00")
+    tax_rate = Decimal(tax_obj.tax) if tax_obj else Decimal("0.00")
+    delivery_charge = Decimal(tax_obj.delivery_charges) if tax_obj else Decimal("0.00")
+    min_free_delivery = Decimal(tax_obj.min_amount_for_free_delivery) if tax_obj else Decimal("0.00")
 
     subtotal = sum(Decimal(item.product.price) * item.quantity for item in cart_items)
-
-    taxes = (subtotal * tax_rate / Decimal('100')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    taxes = (subtotal * tax_rate / Decimal("100")).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
 
     if subtotal >= min_free_delivery:
         delivery_charge = Decimal("0.00")
 
-    total_price = (subtotal + taxes + delivery_charge).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    total_price = (subtotal + taxes + delivery_charge).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
 
-    # ⭐ GET SELECTED ADDRESS
-    selected_address = Address.objects.filter(user=request.user, is_selected=True).first()
-    if not selected_address:
-        selected_address = Address.objects.filter(user=request.user, is_default=True).first()
+    # ---------------- ADDRESS ----------------
+    selected_address = Address.objects.filter(
+        user=request.user,
+        id=selected_address_id
+    ).first() or Address.objects.filter(
+        user=request.user,
+        is_default=True
+    ).first()
 
     context = {
         "cart_items": cart_items,
@@ -67,12 +108,146 @@ def confirm_order(request):
         "delivery_charge": delivery_charge,
         "total_price": total_price,
         "selected_address": selected_address,
-        "tax_rate": tax_rate,
-        "min_free_delivery": min_free_delivery,
+        "payment_method": payment_method,
     }
 
     return render(request, "orders/confirm_order.html", context)
 
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect
+from django.db import transaction
+from decimal import Decimal
+from django.contrib import messages
+from orders.utils import generate_order_code
+@login_required
+@transaction.atomic
+def place_confirm_order(request):
+    if request.method != "POST":
+        return redirect("cart")
+
+    user = request.user
+
+    # -----------------------------
+    # DATA FROM SESSION
+    # -----------------------------
+    selected_items = request.session.get("selected_items", [])
+    selected_address_id = request.session.get("selected_address")
+    payment_method = request.session.get("payment_method")
+
+    if not selected_items or payment_method != "cod":
+        messages.error(request, "Invalid order request.")
+        return redirect("cart")
+
+    # -----------------------------
+    # FETCH ADDRESS
+    # -----------------------------
+    address = Address.objects.filter(user=user, id=selected_address_id).first()
+    if not address:
+        messages.error(request, "Delivery address not found.")
+        return redirect("cart")
+
+    # -----------------------------
+    # FETCH CART ITEMS
+    # -----------------------------
+    cart_items = CartItem.objects.select_related(
+        "product", "size"
+    ).filter(user=user, id__in=selected_items)
+
+    if not cart_items.exists():
+        messages.error(request, "Cart items not found.")
+        return redirect("cart")
+
+    # -----------------------------
+    # PRICE CALCULATION
+    # -----------------------------
+    tax_obj = TaxesAndCharges.objects.first()
+    tax_rate = Decimal(tax_obj.tax) if tax_obj else Decimal("0.00")
+    delivery_charge = Decimal(tax_obj.delivery_charges) if tax_obj else Decimal("0.00")
+    min_free_delivery = Decimal(tax_obj.min_amount_for_free_delivery) if tax_obj else Decimal("0.00")
+
+    subtotal = sum(item.price * item.quantity for item in cart_items)
+    taxes = (subtotal * tax_rate / Decimal("100")).quantize(Decimal("0.01"))
+
+    if subtotal >= min_free_delivery:
+        delivery_charge = Decimal("0.00")
+
+    total_amount = (subtotal + taxes + delivery_charge).quantize(Decimal("0.01"))
+
+    # -----------------------------
+    # CREATE ORDER
+    # -----------------------------
+
+    order = Order.objects.create(
+        user=user,
+        address=address,
+        payment_method="COD",
+        payment_status="PENDING",
+        total_amount=total_amount,
+        tax_amount=taxes,
+        delivery_charges=delivery_charge,
+        status="CONFIRMED",
+        order_code=generate_order_code(),  # ✅ ORDER CODE HERE
+
+    )
+
+    # -----------------------------
+    # CREATE ORDER ITEMS + STOCK REDUCE
+    # -----------------------------
+    for item in cart_items:
+        stock = ProductStock.objects.select_for_update().filter(
+            product=item.product,
+            size=item.size
+        ).first()
+
+        if not stock or stock.stock < item.quantity:
+            messages.error(request, f"Insufficient stock for {item.product.name}")
+            raise Exception("Stock issue")
+
+        stock.stock -= item.quantity
+        stock.save()
+
+        OrderItem.objects.create(
+            order=order,
+            product=item.product,
+            quantity=item.quantity,
+            price=item.price,
+            size=item.size,
+
+        )
+
+    # -----------------------------
+    # CLEAR CART
+    # -----------------------------
+    cart_items.delete()
+
+    # -----------------------------
+    # CLEAR ONLY CHECKOUT SESSION DATA
+    # -----------------------------
+    for key in ["selected_items", "selected_address", "payment_method"]:
+        request.session.pop(key, None)
+
+    # -----------------------------
+    # SUCCESS
+    # -----------------------------
+    return redirect("order_success")
+
+
+
+@login_required
+def payment_success(request):
+    request.session.pop("payment_method", None)
+    return redirect("order_success")
+
+
+############################ by vasu
+
+@login_required
+def order_success(request):
+    latest_order = Order.objects.filter(user=request.user).latest("created_at")
+    return render(request, "orders/order_success.html", {
+        "order": latest_order
+    })
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.conf import settings
@@ -309,11 +484,23 @@ def order_detail(request, order_code):
 
     items = order.items.all()
     # Check if all items are delivered
-    all_delivered = all(item.status == 'delivered' for item in items)
+    items_statuses = [item.status for item in items]
+
+    # Case 1: All items delivered
+    all_delivered = all(status == 'delivered' for status in items_statuses)
+
+    # Case 2: At least one item returned (successfully)
+    any_returned = any(status == 'returned' for status in items_statuses)
+
+    # Case 3: Entire order cancelled
+    all_cancelled = all(status == 'cancelled' for status in items_statuses)
+
+    # FINAL INVOICE CONDITION
+    enable_invoice = all_delivered or any_returned or all_cancelled
 
     return render(request, 'orders/order_detail.html', {
         'order': order,
-        'all_delivered': all_delivered,
+            "enable_invoice": enable_invoice,
         'items': items,
     })
 

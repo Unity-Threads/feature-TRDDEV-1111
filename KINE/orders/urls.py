@@ -18,5 +18,11 @@ urlpatterns = [
                 name="cancel_order_item"
         ),
         path('item/<int:item_id>/track/', views.track_order_item, name='track_order_item'),
+        path("success/", views.order_success, name="order_success"),
+        path(
+            "place-confirm-order/",
+            views.place_confirm_order,
+            name="place_confirm_order"
+)
 
 ]

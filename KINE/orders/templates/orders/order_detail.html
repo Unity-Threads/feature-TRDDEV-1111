@@ -38,14 +38,48 @@
 #returnModal .modal-box { background: #fff; padding: 20px; border-radius: 8px; max-width: 400px; margin: 120px auto; }
 #returnModal textarea { width: 100%; padding: 6px; }
 #returnModal button { padding: 6px 12px; margin-top: 10px; }
+
+    /* TOP BAR */
+.order-top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    background: #fff;
+    border-bottom: 1px solid #eaeaea;
+    font-size: 16px;
+}
+
+/* BACK BUTTON */
+.back-btn {
+    text-decoration: none;
+    color: #000;
+    font-weight: 500;
+}
+
+/* HELP LINK */
+.help-link {
+    text-decoration: none;
+    color: #000;
+    font-size: 14px;
+}
+
+
+
 </style>
 
 <div class="order-detail-container">
-    <a href="{% url 'order_history' %}" class="back-btn">← Back</a>
-    <div class="page-header">
-        Order Details<br>
-        <small>Order ID: <strong>{{ order.order_code }}</strong></small>
-    </div>
+  <!-- TOP BAR -->
+<div class="order-top-bar">
+    <a href="{% url 'order_history' %}" class="back-btn">
+        ← Orders
+    </a>
+
+    <a href="#" class="help-link">
+        Need Help ?
+    </a>
+</div>
+
 
     {% with order.items.all as items %}
     {% if items %}
@@ -64,14 +98,21 @@
     {% endwith %}
 
     <div class="payment-box">
-        <div class="payment-header">
+
+               <div class="payment-header">
             <span>Order payment details</span>
-            {% if all_delivered %}
-                <a href="#">Download invoice</a>
+
+            {% if enable_invoice %}
+                <a href="#">
+                    Download invoice
+                </a>
             {% else %}
-                <span class="invoice-disabled">Invoice after delivery</span>
+                <span class="invoice-disabled">
+                    Invoice after delivery / return
+                </span>
             {% endif %}
         </div>
+
         <div class="payment-row"><span>Order amount</span><span id="total-amount">₹{{ order.total_amount|floatformat:2 }}</span></div>
         <div class="payment-row"><span>Tax</span><span id="tax-amount">₹{{ order.tax_amount|floatformat:2 }}</span></div>
         <div class="payment-row"><span>Delivery charges</span><span id="delivery-charges">₹{{ order.delivery_charges|floatformat:2 }}</span></div>
@@ -96,6 +137,7 @@
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
+
 const csrftoken = (name='csrftoken') => {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -107,7 +149,9 @@ const csrftoken = (name='csrftoken') => {
     return cookieValue;
 };
 
+
 /* UPDATE TOTALS */
+
 function updateOrderTotals(totals){
     if(!totals) return;
     $('#total-amount').text(`₹${Number(totals.total_amount).toFixed(2)}`);
@@ -118,6 +162,7 @@ function updateOrderTotals(totals){
 }
 
 /* CANCEL ITEM */
+
 $(document).on('click','.cancel-btn:not(.disabled)',function(){
     if(!confirm("Cancel this item?")) return;
     const btn = $(this);

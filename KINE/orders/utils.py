@@ -20,3 +20,21 @@ def send_order_confirmation_email(order):
         html_message=message,  # send HTML email
         fail_silently=False,
     )
+
+from orders.models import Order
+from datetime import datetime
+
+def generate_order_code():
+    year_suffix = datetime.now().strftime("%y")
+
+    last_order = Order.objects.filter(
+        order_code__startswith=f"UT{year_suffix}"
+    ).order_by("id").last()
+
+    if last_order:
+        last_seq = int(last_order.order_code[4:])
+        new_seq = last_seq + 1
+    else:
+        new_seq = 1
+
+    return f"UT{year_suffix}{new_seq:06d}"
