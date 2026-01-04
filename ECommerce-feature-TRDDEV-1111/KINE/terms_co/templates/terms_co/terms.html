@@ -1,0 +1,208 @@
+{% extends 'landing/base.html' %}
+{% block title %}TERMS&CONDITIONS{% endblock %}
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ terms.title }}</title>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(180deg, #f8fafc, #eef2f7);
+            margin: 0;
+            color: #1f2937;
+        }
+
+        /* FULL WINDOW WRAPPER */
+        .page-wrapper {
+            width: 100%;
+            padding: 70px 30px;
+        }
+
+        /* CONTENT AREA */
+        .container {
+            max-width: 1200px; /* 🔥 increased width */
+            margin: auto;
+            background: #ffffff;
+            padding: 70px 80px;
+            border-radius: 16px;
+            box-shadow: 0 20px 45px rgba(0,0,0,0.07);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 42px; /* 🔥 bigger */
+            font-weight: 700;
+            letter-spacing: -0.6px;
+            margin-bottom: 10px;
+        }
+
+        .updated {
+            text-align: center;
+            color: #6b7280;
+            font-size: 15px; /* 🔥 bigger */
+            margin-bottom: 40px;
+        }
+
+        .intro {
+            text-align: center;
+            font-size: 18px; /* 🔥 bigger */
+            color: #374151;
+            line-height: 2;
+            max-width: 900px;
+            margin: 0 auto 65px auto;
+        }
+
+        .section {
+            margin-bottom: 55px;
+            padding-left: 22px;
+            border-left: 4px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+
+        .section:hover {
+            border-left-color: #2563eb;
+        }
+
+        .section h2 {
+            font-size: 26px; /* 🔥 bigger */
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #111827;
+        }
+
+        .section p,
+        .section li {
+            font-size: 17px; /* 🔥 bigger */
+            line-height: 2;
+            color: #374151;
+        }
+
+        .section ul {
+            padding-left: 24px;
+            margin-top: 12px;
+        }
+
+        .divider {
+            border-top: 1px dashed #d1d5db;
+            margin: 70px 0;
+        }
+
+        .contact {
+            background: #f9fafb;
+            padding: 35px 40px;
+            border-radius: 12px;
+        }
+
+        .contact h3 {
+            font-size: 22px; /* 🔥 bigger */
+            font-weight: 600;
+            margin-bottom: 14px;
+        }
+
+        .contact p {
+            font-size: 16px; /* 🔥 bigger */
+            color: #374151;
+            margin: 8px 0;
+        }
+
+        /* TABLET */
+        @media (max-width: 1024px) {
+            .container {
+                padding: 55px 45px;
+            }
+        }
+
+        /* MOBILE */
+        @media (max-width: 768px) {
+            .page-wrapper {
+                padding: 35px 15px;
+            }
+
+            .container {
+                padding: 35px 25px;
+            }
+
+            h1 {
+                font-size: 32px;
+            }
+
+            .intro {
+                font-size: 16px;
+            }
+
+            .section h2 {
+                font-size: 22px;
+            }
+
+            .section p,
+            .section li {
+                font-size: 15px;
+            }
+        }
+
+        /* SMALL MOBILE */
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 28px;
+            }
+
+            .container {
+                padding: 28px 18px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="page-wrapper">
+
+    <div class="container">
+
+        <!-- Title -->
+        <h1>{{ terms.title }}</h1>
+
+        <!-- Updated Date -->
+        <div class="updated">
+            Last Updated: {{ terms.last_updated }}
+        </div>
+
+        <!-- Intro -->
+        <div class="intro">
+            {{ terms.intro_content|linebreaks }}
+        </div>
+
+        <!-- Categories -->
+        {% for cat in terms.categories.all %}
+        <div class="section">
+            <h2>{{ forloop.counter }}. {{ cat.category_title }}</h2>
+            {{ cat.category_content|linebreaks }}
+        </div>
+        {% endfor %}
+
+        <div class="divider"></div>
+
+        <!-- Contact -->
+        <div class="contact">
+            <h3>Contact Us</h3>
+            <p><strong>Email:</strong> {{ terms.email }}</p>
+            <p><strong>Address:</strong> {{ terms.address }}</p>
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>
+{% endblock %}
