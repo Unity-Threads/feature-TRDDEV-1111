@@ -1,0 +1,225 @@
+{% extends "landing/base.html" %}
+{% load static %}
+{% block title %}My Orders{% endblock %}
+
+{% block content %}
+<style>
+/* ================= CONTAINER ================= */
+.orders-container {
+    max-width: 420px;
+    margin: 70px auto;
+    padding: 12px;
+    font-family: system-ui, -apple-system;
+}
+
+/* ================= HEADER ================= */
+.orders-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.orders-header h2 {
+    font-size: 18px;
+    margin: 0;
+}
+
+.filter-btn {
+    font-size: 14px;
+    color: #2874f0;
+    cursor: pointer;
+}
+
+/* ================= ORDER ID ================= */
+.order-id {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 14px 0 6px;
+}
+
+/* ================= CARD ================= */
+.order-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    border: 1px solid #eaeaea;
+    margin-bottom: 14px;
+    transition: box-shadow .2s ease;
+}
+
+.order-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* ================= IMAGE ================= */
+.order-img {
+    width: 72px;
+    height: 72px;
+    background: #f2f2f2;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-right: 12px;
+}
+
+.order-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* ================= INFO ================= */
+.order-info {
+    flex: 1;
+}
+
+.product-name {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.brand-name {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.size-text {
+    font-size: 12px;
+    color: #444;
+}
+
+/* ================= MULTI ITEMS ================= */
+.more-items {
+    font-size: 12px;
+    color: #777;
+    margin-top: 4px;
+}
+
+/* ================= ARROW ================= */
+.arrow {
+    font-size: 22px;
+    color: #666;
+    margin-left: 6px;
+}
+
+/* ================= FILTER MODAL ================= */
+.filter-modal {
+    position: fixed;
+    left: 0;
+    bottom: -100%;
+    width: 100%;
+    background: #fff;
+    border-radius: 16px 16px 0 0;
+    padding: 16px;
+    box-shadow: 0 -4px 12px rgba(0,0,0,.15);
+    transition: 0.3s;
+    z-index: 999;
+}
+
+.filter-modal.active {
+    bottom: 0;
+}
+
+.filter-modal h3 {
+    margin-top: 0;
+    font-size: 16px;
+}
+
+.filter-option {
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+</style>
+
+<div class="orders-container">
+
+    <!-- HEADER -->
+    <div class="orders-header">
+        <h2>Orders</h2>
+        <span class="filter-btn" onclick="openFilter()">≡ Filter</span>
+    </div>
+
+    <!-- ORDERS LIST -->
+    {% for order in orders %}
+
+        <div class="order-id">
+            Order Id : {{ order.order_code }}
+        </div>
+
+        <a href="{% url 'order_detail' order.order_code %}"
+           style="text-decoration:none;color:inherit;">
+
+            <div class="order-card">
+
+                <!-- IMAGE -->
+                <div class="order-img">
+                    <img src="{{ order.items.first.product.image_url }}" alt="">
+                </div>
+
+                <!-- INFO -->
+                <div class="order-info">
+
+
+                       <!-- BRAND NAME -->
+                    <div class="brand-name">
+                        <h4>UnityThreads</h4>
+                    </div>
+
+                    <!-- PRODUCT NAME -->
+                    <div class="product-name">
+                        {{ order.items.first.product.name }}
+                    </div>
+
+                    <!-- SIZE -->
+                    {% if order.items.first.size %}
+                    <div class="size-text">
+                        Size: {{ order.items.first.size }}
+                    </div>
+                    {% endif %}
+
+                    <!-- MULTIPLE ITEMS -->
+                    {% if order.items.count > 1 %}
+                    <div class="more-items">
+                        + {{ order.items.count|add:"-1" }} more item(s)
+                    </div>
+                    {% endif %}
+
+                </div>
+
+                <!-- ARROW -->
+                <div class="arrow">›</div>
+            </div>
+
+        </a>
+    {% empty %}
+        <p>No orders found.</p>
+    {% endfor %}
+</div>
+
+<!--&lt;!&ndash; ================= FILTER MODAL ================= &ndash;&gt;-->
+<!--<div class="filter-modal" id="filterModal">-->
+<!--    <h3>Filter Orders</h3>-->
+<!--    <div class="filter-option">All Orders</div>-->
+<!--    <div class="filter-option">Last 30 Days</div>-->
+<!--    <div class="filter-option">Last 6 Months</div>-->
+<!--    <div class="filter-option" onclick="closeFilter()">Close</div>-->
+<!--</div>-->
+
+<script>
+function openFilter() {
+    document.getElementById('filterModal').classList.add('active');
+}
+
+function closeFilter() {
+    document.getElementById('filterModal').classList.remove('active');
+}
+</script>
+
+{% endblock %}

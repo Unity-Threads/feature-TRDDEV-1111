@@ -1,0 +1,76 @@
+<style>
+    /* SHIPPING INFO */
+.shipping-info {
+    margin: 10px 0;
+    padding: 10px;
+    background: #fefefe;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+/* DELIVERY ADDRESS */
+.delivery-address {
+    margin: 10px 0;
+    padding: 10px;
+    background: #f9f9f9;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.delivery-address p {
+    margin: 2px 0;
+}
+</style>
+
+<div class="product-card" data-item-id="{{ item.id }}">
+    <div class="product-top">
+        <img src="{{ item.product.image_url|default:'https://via.placeholder.com/80x100' }}" alt="{{ item.product.name }}" />
+        <div class="product-info">
+            <h4>{{ item.product.name }}</h4>
+            <div class="price">₹{{ item.price }}</div>
+            {% if item.size %}<p>Size: {{ item.size }}</p>{% endif %}
+            <p>Quantity: {{ item.quantity }}</p>
+            <div class="status {{ item.status }}">{{ item.status|capfirst }}</div>
+        </div>
+    </div>
+     <!-- SHIPPING INFO -->
+    <div class="shipping-info">
+        <p><strong>Shipping ID:</strong> {{ item.shipping_info.shipping_id|default:"-" }}</p>
+        <p><strong>Shipped With:</strong> {{ item.shipping_info.company_name|default:"-" }}</p>
+    </div>
+
+    <div class="action-bar">
+        {% if item.status == "shipped" or item.status == "out_for_delivery" %}
+            <a href="{% url 'track_order_item' item.id %}" class="active">Track</a>
+        {% else %}
+            <a class="disabled">Track</a>
+        {% endif %}
+        {% if item.status == "confirmed" or item.status == "processing" %}
+            <a href="javascript:void(0)" class="active cancel-btn" data-url="{% url 'cancel_order_item' item.id %}">Cancel</a>
+        {% else %}
+            <a class="disabled">Cancel</a>
+        {% endif %}
+        {% if item.status == "delivered" %}
+            <a href="javascript:void(0)" class="active return-btn" data-url="{% url 'item_issue' item.id %}">Return</a>
+        {% elif item.status == "returned" %}
+            <a class="disabled">Returned</a>
+        {% else %}
+            <a class="disabled">Return</a>
+        {% endif %}
+    </div>
+     <!-- DELIVERY ADDRESS -->
+    <div class="delivery-address" style="margin-top:10px; padding:10px; border-top:1px solid #eee; font-size:13px;">
+        <strong>Delivery Address:</strong><br>
+        <span>{{ item.order.address.fullname }}</span><br>
+        {{ item.order.address.address1 }}<br>
+        {{ item.order.address.city }}, {{ item.order.address.state }} - {{ item.order.address.pincode }}<br>
+        {{ item.order.address.mobile }}
+    </div>
+
+
+
+</div>
