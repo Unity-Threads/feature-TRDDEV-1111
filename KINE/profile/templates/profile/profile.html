@@ -176,6 +176,19 @@ body {
 }
 
 /* Change Password button */
+#changePassBtn.loading {
+  cursor: not-allowed;
+  box-shadow: none !important;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Prevent hover effects */
+#changePassBtn.loading:hover {
+  box-shadow: none !important;
+  background-color: inherit;
+}
+
 .password-btn {
   background: #e0f2fe;
   color: #0369a1;
@@ -464,7 +477,7 @@ body {
         <input type="password" name="new_password2" id="new_password2" placeholder="Confirm New Password" required>
       </div>
 
-      <button type="submit">Change Password</button>
+      <button id="changePassBtn" type="submit">Change Password</button>
     </form>
 
     <p id="password-error" style="color: red; margin-top:10px;"></p>
