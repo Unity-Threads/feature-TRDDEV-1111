@@ -12,42 +12,16 @@ document.addEventListener("DOMContentLoaded", () => {
 // EVENT DELEGATION FOR QUANTITY BUTTONS
 // ------------------------------
 document.addEventListener("click", async (e) => {
-    if (e.target.classList.contains("qty-btn")) {
-        const button = e.target;
-        const itemId = button.dataset.id;
-        const action = button.classList.contains("increase") ? "increase" : "decrease";
+    const button = e.target.closest(".qty-btn");
+    if (!button) return;
 
-        const qtyDisplay = document.querySelector(`#qty-${itemId}`);
-        if (!qtyDisplay) return;
+    const itemId = button.dataset.id;
+    const action = button.classList.contains("increase")
+        ? "increase"
+        : "decrease";
+    console.log("Button clicked");
 
-        let currentQty = parseInt(qtyDisplay.textContent || qtyDisplay.value);
-
-        if (action === "increase") currentQty++;
-        else if (action === "decrease" && currentQty > 1) currentQty--;
-
-        // Update locally
-        if (qtyDisplay.tagName === "INPUT") {
-            qtyDisplay.value = currentQty;
-        } else {
-            qtyDisplay.textContent = currentQty;
-        }
-        // After updating quantity
-        const qtySpan = document.getElementById(`qty-${itemId}`);
-        const newQty = parseInt(qtySpan.textContent);
-
-        const increaseBtn = document.querySelector(`.increase[data-id="${itemId}"]`);
-        const stock = parseInt(increaseBtn.dataset.stock);
-
-        // Disable + button if stock reached
-        if (newQty >= stock) {
-            increaseBtn.disabled = true;
-        } else {
-            increaseBtn.disabled = false;
-        }
-
-        // ✅ Wait for backend update to complete before refreshing summary
-        await updateCart(itemId, action);
-    }
+    await updateCart(itemId, action);
 });
 
 // ------------------------------
@@ -55,7 +29,7 @@ document.addEventListener("click", async (e) => {
 // ------------------------------
 async function updateCart(itemId, action) {
     try {
-        const response = await fetch(`/update-cart/${itemId}/`, {
+        const response = await fetch(`/cart/update-cart/${itemId}/`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -64,45 +38,45 @@ async function updateCart(itemId, action) {
             body: JSON.stringify({ action })
         });
 
-        if (!response.ok) throw new Error("Network error");
+        if (!response.ok) {
+            const text = await response.text();
+            console.error("Server error:", text);
+            return;
+        }
+
         const data = await response.json();
 
         if (data.removed) {
-            const itemRow = document.querySelector(`#qty-${itemId}`)?.closest(".cart-item");
-            if (itemRow) itemRow.remove();
-        } else {
-            const qtyEl = document.querySelector(`#qty-${itemId}`);
-            if (qtyEl) qtyEl.textContent = data.quantity;
-
-            const subtotalEl = document.querySelector(`#subtotal-${itemId}`);
-            if (subtotalEl) {
-                const rawSubtotal = data.subtotal ?? data.sub_total ?? 0;
-                subtotalEl.textContent = formatCurrency(parseNumber(rawSubtotal), false);
-            }
+            document.querySelector(`#qty-${itemId}`)?.closest(".cart-item")?.remove();
+            checkAndShowEmptyCart();
+            updateCartSummary();
+            return;
         }
 
-        // ✅ Handle COD eligibility toggle
+        const qtyEl = document.getElementById(`qty-${itemId}`);
+        if (qtyEl) qtyEl.textContent = data.quantity;
+
+        const subtotalEl = document.getElementById(`subtotal-${itemId}`);
+        if (subtotalEl) {
+            subtotalEl.textContent = formatCurrency(data.subtotal);
+        }
+
+        const increaseBtn = document.querySelector(`.increase[data-id="${itemId}"]`);
+        if (increaseBtn) {
+            increaseBtn.disabled = data.quantity >= data.stock;
+        }
+
 
         const codInput = document.getElementById("payment-cod");
-        if (codInput && data.hasOwnProperty("all_items_eligible_for_cod")) {
-            currentCODStatus = data.all_items_eligible_for_cod;
-            if (currentCODStatus) {
-                codInput.disabled = false;
-                codInput.style.cursor = "pointer";
-                codInput.title = "";
-            } else {
-                codInput.disabled = true;
-                codInput.checked = false;
-                codInput.style.cursor = "not-allowed";
-                codInput.title = "Some items are not eligible for Cash on Delivery.";
-            }
+        if (codInput) {
+            codInput.disabled = !data.all_items_eligible_for_cod;
+            codInput.checked = codInput.disabled ? false : codInput.checked;
         }
 
-        // ✅ Update summary after backend updates are applied
         updateCartSummary();
 
-    } catch (error) {
-        console.error("Error updating cart:", error);
+    } catch (err) {
+        console.error("Cart update failed", err);
     }
 }
 
@@ -234,11 +208,11 @@ function setSummaryDisplays(total, count, tax, deliveryCharge, grandTotal) {
     const deliveryEl = document.getElementById("delivery-charge");
     const grandTotalEl = document.getElementById("grand-total");
 
-    if (totalDisplay) totalDisplay.textContent = formatCurrency(total, false);
+    if (totalDisplay) totalDisplay.textContent = formatCurrency(total);
     if (summaryItems) summaryItems.textContent = count;
-    if (taxesEl) taxesEl.textContent = formatCurrency(tax, false);
-    if (deliveryEl) deliveryEl.textContent = formatCurrency(deliveryCharge, false);
-    if (grandTotalEl) grandTotalEl.textContent = formatCurrency(grandTotal, false);
+    if (taxesEl) taxesEl.textContent = formatCurrency(tax);
+    if (deliveryEl) deliveryEl.textContent = formatCurrency(deliveryCharge);
+    if (grandTotalEl) grandTotalEl.textContent = formatCurrency(grandTotal);
 }
 
 // ------------------------------
@@ -268,6 +242,29 @@ function getCSRFToken() {
     }
     return "";
 }
+
+function checkAndShowEmptyCart() {
+    const remainingItems = document.querySelectorAll(".cart-item");
+
+    if (remainingItems.length === 0) {
+
+        // 1️⃣ Hide all cart layouts
+        document.querySelectorAll(".cart-layout").forEach(layout => {
+            layout.style.display = "none";
+        });
+
+        // 2️⃣ Show empty cart
+        const emptyLayout = document.getElementById("empty-cart-layout");
+        if (emptyLayout) emptyLayout.style.display = "block";
+
+        // 3️⃣ 🔥 FORCE correct centering layout
+        const mainContainer = document.querySelector(".main-cart-div");
+        if (mainContainer) {
+            mainContainer.classList.add("empty-cart-layout");
+        }
+    }
+}
+
 
 
 // -----------------------------------------------------------
@@ -315,10 +312,25 @@ function getSelectedAddressId() {
 // -----------------------------------------------------------
 async function placeSelectedOrder(selectedItems) {
     try {
+        if (!selectedItems || selectedItems.length === 0) {
+            alert("Please select at least one item");
+            return;
+        }
+
         const addressId = getSelectedAddressId();
-        const paymentMethod = document.querySelector(
+        if (!addressId) {
+            alert("Please select an address");
+            return;
+        }
+
+        const paymentInput = document.querySelector(
             'input[name="payment_method"]:checked'
-        ).value;
+        );
+
+        if (!paymentInput) {
+            alert("Please select a payment method");
+            return;
+        }
 
         const response = await fetch("/orders/confirm_order/", {
             method: "POST",
@@ -329,14 +341,13 @@ async function placeSelectedOrder(selectedItems) {
             body: JSON.stringify({
                 selected_items: selectedItems,
                 selected_address: addressId,
-                payment_method: paymentMethod
+                payment_method: paymentInput.value
             })
         });
 
         const data = await response.json();
 
         if (data.redirect_url) {
-            // ✅ BOTH COD & PREPAID go to confirm page
             window.location.href = data.redirect_url;
         }
 

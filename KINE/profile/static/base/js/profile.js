@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const editBtns = document.querySelectorAll(".edit-btn");
   const saveBtn = document.getElementById("save-btn");
   const discardBtns = document.querySelectorAll(".discard-btn");
+  const changePasswordBtn = document.getElementById("changePassBtn");
   const nameInput = document.getElementById("name");
   const emailInput = document.getElementById("email");
   const errorEl = document.getElementById("profile-error");
@@ -124,7 +125,7 @@ document.addEventListener("DOMContentLoaded", () => {
       );
 
       try {
-        const response = await fetch("/ajax/save-profile/", {
+        const response = await fetch("/profile/ajax/save-profile/", {
           method: "POST",
           body: formData,
         });
@@ -232,39 +233,51 @@ document.addEventListener("DOMContentLoaded", () => {
         CHANGE PASSWORD (AJAX)
   =========================== */
 
-  if (passwordForm) {
-    passwordForm.addEventListener("submit", async e => {
-      e.preventDefault();
+  if (!passwordForm || !changePasswordBtn) return;
 
-      const pwdErrorEl = document.getElementById("password-error");
-      const pwdSuccessEl = document.getElementById("password-success");
-      pwdErrorEl.textContent = "";
-      pwdSuccessEl.textContent = "";
+  passwordForm.addEventListener("submit", async e => {
+    e.preventDefault();
 
-      const response = await fetch("/ajax/change-password/", {
+    const pwdErrorEl = document.getElementById("password-error");
+    const pwdSuccessEl = document.getElementById("password-success");
+    pwdErrorEl.textContent = "";
+    pwdSuccessEl.textContent = "";
+
+    changePasswordBtn.disabled = true;
+    changePasswordBtn.textContent = "Changing Password...";
+    changePasswordBtn.classList.add("loading");
+
+    await new Promise(requestAnimationFrame);
+
+    try {
+      const response = await fetch("/profile/ajax/change-password/", {
         method: "POST",
         body: new URLSearchParams(new FormData(passwordForm)),
         headers: {
-          "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value,
+          "X-CSRFToken": document.querySelector(
+            "[name=csrfmiddlewaretoken]"
+          ).value,
         },
+        credentials: "same-origin",
       });
 
       const data = await response.json();
 
       if (data.success) {
-        pwdSuccessEl.textContent = data.message || "Password changed successfully!";
+        pwdSuccessEl.textContent = data.message;
         passwordForm.reset();
-        if (strengthBar) strengthBar.style.width = "0%";
-        if (strengthText) strengthText.textContent = "";
-
-        setTimeout(() => (modal.style.display = "none"), 1500);
       } else {
-        pwdErrorEl.textContent =
-          data.error ||
-          "Password must be 8+ chars with uppercase, lowercase, number & special character";
+        pwdErrorEl.textContent = data.error;
       }
-    });
-  }
+    } catch {
+      pwdErrorEl.textContent = "Something went wrong.";
+    } finally {
+      changePasswordBtn.disabled = false;
+      changePasswordBtn.textContent = "Change Password";
+      changePasswordBtn.classList.remove("loading");
+
+    }
+  });
 
   /* ===========================
         AUTO CLEAR SUCCESS MSGS
