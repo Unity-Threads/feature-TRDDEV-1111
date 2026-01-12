@@ -66,11 +66,7 @@ async function updateCart(itemId, action) {
             increaseBtn.disabled = data.quantity >= data.stock;
         }
 
-<<<<<<< HEAD
-        // ✅ Handle COD eligibility toggle
 
-=======
->>>>>>> upstream/dev/2025-12
         const codInput = document.getElementById("payment-cod");
         if (codInput) {
             codInput.disabled = !data.all_items_eligible_for_cod;
@@ -316,10 +312,25 @@ function getSelectedAddressId() {
 // -----------------------------------------------------------
 async function placeSelectedOrder(selectedItems) {
     try {
+        if (!selectedItems || selectedItems.length === 0) {
+            alert("Please select at least one item");
+            return;
+        }
+
         const addressId = getSelectedAddressId();
-        const paymentMethod = document.querySelector(
+        if (!addressId) {
+            alert("Please select an address");
+            return;
+        }
+
+        const paymentInput = document.querySelector(
             'input[name="payment_method"]:checked'
-        ).value;
+        );
+
+        if (!paymentInput) {
+            alert("Please select a payment method");
+            return;
+        }
 
         const response = await fetch("/orders/confirm_order/", {
             method: "POST",
@@ -330,14 +341,13 @@ async function placeSelectedOrder(selectedItems) {
             body: JSON.stringify({
                 selected_items: selectedItems,
                 selected_address: addressId,
-                payment_method: paymentMethod
+                payment_method: paymentInput.value
             })
         });
 
         const data = await response.json();
 
         if (data.redirect_url) {
-            // ✅ BOTH COD & PREPAID go to confirm page
             window.location.href = data.redirect_url;
         }
 
